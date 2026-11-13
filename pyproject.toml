@@ -15,7 +15,6 @@ dev = [
     "pylint",
     "build",
     "twine",
-    "pydeps",
     "pip-review",
 ]
 

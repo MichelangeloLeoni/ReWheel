@@ -2,6 +2,9 @@
 models/
 *.npy
 
+# Test directory
+tests/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
