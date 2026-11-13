@@ -82,34 +82,6 @@ nn.configure(
 # See the API documentation for the complete method signatures.
 ```
 
-## Project structure
-
-```text
-nn_simulator/
-├── LICENSE
-├── pyproject.toml
-├── src
-│   └── nn_simulator
-│       ├── engine
-│       │   ├── activation_functions.py
-│       │   ├── classes.py
-│       │   ├── __init__.py
-│       │   ├── loss.py
-│       │   ├── nn_sim.py
-│       │   ├── propagation.py
-│       │   ├── training.py
-│       │   └── utils.py
-│       ├── __init__.py
-│       └── tools
-│           ├── __init__.py
-│           └── visualizer.py
-└── README.md
-```
-
 ## Documentation
 
 For further details about the classes, functions and available parameters, see the source code docstrings.
-
-## License
-
-This project is released under the terms specified in the repository license.
