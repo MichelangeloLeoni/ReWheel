@@ -1,11 +1,8 @@
 """Module containing the function that trains the neural network."""
+from typing import TYPE_CHECKING
 from datetime import datetime
 import numpy as np
 from ..classes import (
-    UpdateParameters,
-    TrainingParameters,
-    StoppingCriteria,
-    Architecture,
     TrainingLog,
     TrainingState,
     EsState
@@ -13,6 +10,12 @@ from ..classes import (
 from ..loss import compute_error, compute_loss
 from ..propagation import forward_propagation, backward_propagation, update_weights
 from ..utils import initialize_weights, compute_gradient_norm
+
+# NeuralNetwork is only imported during typechecheing and
+# ignored during runtime, preventing circular import but
+# allowing type hinting.
+if TYPE_CHECKING:
+    from ..nn_sim import NeuralNetwork
 
 class Trainer:
     """
@@ -54,23 +57,19 @@ class Trainer:
 
     def __init__(
             self,
-            architecture: Architecture,
-            update_params: UpdateParameters,
-            training_params: TrainingParameters,
-            stopping_crit: StoppingCriteria,
-            weights: list[np.ndarray]
+            neural_network: "NeuralNetwork"
             ):
-        self.weights = weights
-        self.architecture = architecture
-        self.update_params = update_params
-        self.training_params = training_params
-        self.stopping_crit = stopping_crit
+        self.weights = neural_network.weights
+        self.architecture = neural_network.architecture
+        self.update_params = neural_network.update_params
+        self.training_params = neural_network.training_params
+        self.stopping_crit = neural_network.stopping_crit
         # Initialize weights matrices
         seed = initialize_weights(
-            architecture=architecture,
-            weights=weights,
-            bounds=training_params.bounds,
-            seed=training_params.seed
+            architecture=self.architecture,
+            weights=self.weights,
+            bounds=self.training_params.bounds,
+            seed=self.training_params.seed
         )
         # Initialize TrainingState instance
         self.training_state = TrainingState(

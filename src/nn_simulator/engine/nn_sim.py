@@ -264,11 +264,7 @@ class NeuralNetwork:
 
         # Initialize Trainer instance
         tr = Trainer(
-            architecture=self.architecture,
-            update_params=self.update_params,
-            training_params=self.training_params,
-            stopping_crit=self.stopping_crit,
-            weights=self.weights
+            neural_network=self
         )
 
         # Start training loop
