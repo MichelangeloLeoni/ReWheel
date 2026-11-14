@@ -255,7 +255,6 @@ class NeuralNetwork:
                 raise ValueError(
                     "Both validation input vector and target vector must be passed during training."
                 )
-
         # Check validation vectors type
         if valid_input_vector is not None and valid_target_vector is not None:
             if not isinstance(valid_input_vector, np.ndarray):
