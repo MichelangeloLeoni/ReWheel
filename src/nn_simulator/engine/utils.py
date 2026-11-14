@@ -2,41 +2,58 @@
 Module containing support utilities for the functions needed
 in the neural network simulator.
 """
+from functools import wraps
 import numpy as np
 from . import activation_functions as af
 from .classes import Architecture
 
-def check_input(
-        input_vector: list | np.ndarray,
-        input_vector_size: int
-        ) -> None:
+def check_input(func: callable) -> callable:
     """
-    Checks if the input vector type is np.ndarray, if not
-    performs a casting, then checks if the number of features
-    in the input vector matches the number of units in the input layer.
+    Decorator that validates and converts the input vector before
+    passing it to a neural network method.
+
+    The input vector is converted to a np.ndarray if necessary.
+    Its first dimension is then checked against the number of
+    input units specified in the network architecture.
 
     Parameters
     ----------
-    input_vector : np.ndarray
-        Input vector to be forwarded into the neural network.
-    input_vector_size : int
-        Number of features in the input vector.
+    func : callable
+        Instance method of a NeuralNetwork object to be decorated.
+        The method must accept the input vector as its first
+        argument after self.
+
+    Returns
+    -------
+    callable
+        Wrapped method that validates the input vector before
+        executing the original function.
 
     Raises
     ------
-        RuntimeError
-            If the model has not been trained or loaded from memory.
-        ValueError
-            If the number of features in the input vector doesn't
-            match the number of units in the input layer.
+    ValueError
+        If the number of input features does not match the
+        network's input layer size.
     """
-    if not isinstance(input_vector, np.ndarray):
-        input_vector = np.array(input_vector)
+    @wraps(func) # Needed to keep the original function metadata
+    def wrapper(self, input_vector, *args, **kwargs):
+        # Check if the input is a NumPy array,
+        # if not attempt a conversion
+        if not isinstance(input_vector, np.ndarray):
+            input_vector = np.array(input_vector)
 
-    if input_vector.shape[0] != input_vector_size:
-        raise ValueError(
-            "Input vector size does not match the network's input layer number of units."
+        # Check if input vector number of features matches input layer
+        # number of units
+        if input_vector.shape[0] != self.architecture.input_vector_size:
+            raise ValueError(
+                "Input vector size does not match the network's "
+                "input layer number of units."
             )
+
+        # Execute the decorated method
+        return func(self, input_vector, *args, **kwargs)
+
+    return wrapper
 
 def add_bias(
         array: np.ndarray,

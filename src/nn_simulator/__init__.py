@@ -1,18 +1,14 @@
-"""nn_simulator imports."""
-from .engine.nn_sim import NeuralNetwork
-from .engine.classes import (
+"""Neural network simulator package."""
+
+from .engine import (
+    NeuralNetwork,
     Architecture,
     TrainingParameters,
     UpdateParameters,
-    TrainingLog,
     StoppingCriteria
 )
 
-__all__ = [
-    "NeuralNetwork",
-    "Architecture",
-    "TrainingParameters",
-    "UpdateParameters",
-    "TrainingLog",
-    "StoppingCriteria"
-]
+from .tools import (
+    save_model,
+    load_model
+)
