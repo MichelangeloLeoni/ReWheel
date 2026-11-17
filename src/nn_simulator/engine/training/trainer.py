@@ -91,8 +91,6 @@ class Trainer:
             self.es_state = EsState()
 
     def _update_early_stopping(self, validation_loss: float) -> None:
-        """Update the early stopping state using the validation loss."""
-
         min_delta, _ = self.nn.stopping_crit.min_delta_valid_loss
 
         if validation_loss < self.es_state.best_validation_loss - min_delta:
@@ -173,21 +171,6 @@ class Trainer:
             input_vector: np.ndarray,
             target_vector: np.ndarray
             ) -> float:
-        """
-        Propagate and compute the loss for a batch of examples.
-
-        Parameters
-        ----------
-        input_vector : np.ndarray
-            Input vector to be forwarded into the neural network.
-        target_vector : np.ndarray
-            Target vector for the training example.
-
-        Returns
-        -------
-        loss : float
-            Loss computed for the current batch.
-        """
         self.training_state.outputs, self.training_state.nets = forward_propagation(
             weights=self.nn.weights,
             act_funcs=self.nn.architecture.act_funcs,
@@ -221,23 +204,6 @@ class Trainer:
     def _update_wrapper(
             self
             ) -> None:
-        """
-        Compute the loss and weight gradients for a batch of examples.
-
-        Parameters
-        ----------
-        input_vector : np.ndarray
-            Input vector to be forwarded into the neural network.
-        target_vector : np.ndarray
-            Target vector for the training example.
-
-        Returns
-        -------
-        loss : float
-            Loss computed for the current batch.
-        weights_grad : list of numpy.ndarray
-            Weight gradient matrices.
-        """
         self.training_state.previous_weights_deltas = update_weights(
             weights=self.nn.weights,
             weights_gradients=self.training_state.weights_gradients,
@@ -293,20 +259,6 @@ class Trainer:
             input_vector: np.ndarray,
             target_vector: np.ndarray
             ) -> None:
-        """
-        Update the network weights using mini-batch gradient descent.
-
-        The input and target datasets are divided into smaller batches.
-        Each batch is processed independently, and the weights are
-        updated after processing it.
-
-        Parameters
-        ----------
-        input_vector : np.ndarray
-            Input vector to be forwarded into the neural network.
-        target_vector : np.ndarray
-            Target vector for the training example.
-        """
         batch_size = self.nn.training_params.batch_size
         # Split training inputs/targets sets into sub-arrays based on batch_size
         mini_batch_input = np.array_split(

@@ -8,7 +8,7 @@ from .classes import (
     StoppingCriteria
 )
 from .propagation import forward_propagation
-from .utils import check_input
+from .utils import check_input, initialize_weights
 from .training.trainer import Trainer
 
 class NeuralNetwork:
@@ -84,18 +84,6 @@ class NeuralNetwork:
         self.training_log: TrainingLog = None
 
     def __repr__(self) -> str:
-        """
-        Return a string representation of the neural network.
-
-        The representation includes the network architecture, weight
-        initialization status and any available training and update
-        parameters or training log.
-
-        Returns
-        -------
-        str
-            Readable representation of the neural network instance.
-        """
         weights_initialized = all(
             w is not None for w in self.weights
         )
@@ -104,22 +92,31 @@ class NeuralNetwork:
             if weights_initialized
             else "uninitialized"
         )
+
+        nn_weights = [None] * len(self.architecture.layers)
+        initialize_weights(self.architecture, nn_weights)
+        total_params = sum(w.size for w in nn_weights)
         lines = [
             "NeuralNetwork(",
-            f"    architecture={self.architecture},",
-            f"    weights={weights_status},",
+            f"    Architecture = {self.architecture},",
+            f"    Weights status = {weights_status},",
+            f"    Total trainable parameters = {total_params},"
         ]
         if self.training_params is not None:
             lines.append(
-                f"    training_params={self.training_params},"
+                f"    training_params = {self.training_params},"
             )
         if self.update_params is not None:
             lines.append(
-                f"    update_params={self.update_params},"
+                f"    update_params = {self.update_params},"
+            )
+        if self.stopping_crit is not None:
+            lines.append(
+                f"    stopping_crit = {self.stopping_crit},"
             )
         if self.training_log is not None:
             lines.append(
-                f"    training_log={self.training_log},"
+                f"    training_log = {self.training_log},"
             )
         lines.append(")")
 
