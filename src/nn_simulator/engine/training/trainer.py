@@ -59,24 +59,21 @@ class Trainer:
             self,
             neural_network: "NeuralNetwork"
             ):
-        self.weights = neural_network.weights
-        self.architecture = neural_network.architecture
-        self.update_params = neural_network.update_params
-        self.training_params = neural_network.training_params
-        self.stopping_crit = neural_network.stopping_crit
+        self.nn = neural_network
+
         # Initialize weights matrices
         seed = initialize_weights(
-            architecture=self.architecture,
-            weights=self.weights,
-            bounds=self.training_params.bounds,
-            seed=self.training_params.seed
+            architecture=self.nn.architecture,
+            weights=self.nn.weights,
+            bounds=self.nn.training_params.bounds,
+            seed=self.nn.training_params.seed
         )
         # Initialize TrainingState instance
         self.training_state = TrainingState(
             delta_loss=[],
             gradient_norms=[],
             previous_weights_deltas = [
-                np.zeros_like(w) for w in self.weights
+                np.zeros_like(w) for w in self.nn.weights
             ]
         )
         # Initialize TrainingLog instance
@@ -86,24 +83,24 @@ class Trainer:
             stopping_cause=[],
             validation_loss=(
                 []
-                if (self.stopping_crit.min_delta_valid_loss is not None)
+                if (self.nn.stopping_crit.min_delta_valid_loss is not None)
                 else None
             )
         )
-        if self.stopping_crit.min_delta_valid_loss is not None:
+        if self.nn.stopping_crit.min_delta_valid_loss is not None:
             self.es_state = EsState()
 
     def _update_early_stopping(self, validation_loss: float) -> None:
         """Update the early stopping state using the validation loss."""
 
-        min_delta, _ = self.stopping_crit.min_delta_valid_loss
+        min_delta, _ = self.nn.stopping_crit.min_delta_valid_loss
 
         if validation_loss < self.es_state.best_validation_loss - min_delta:
             self.es_state.best_validation_loss = validation_loss
             self.es_state.epochs_no_improv = 0
 
             self.es_state.best_weights = [
-                w.copy() for w in self.weights
+                w.copy() for w in self.nn.weights
             ]
             self.es_state.best_epoch = len(self.training_log.validation_loss)
         else:
@@ -133,21 +130,21 @@ class Trainer:
 
         # Maximum number of epochs
         if (
-            self.stopping_crit.epochs is not None
-            and len(self.training_log.loss) >= self.stopping_crit.epochs
+            self.nn.stopping_crit.epochs is not None
+            and len(self.training_log.loss) >= self.nn.stopping_crit.epochs
         ):
             causes.append("Maximum_epochs_reached")
 
         # Target loss
         if (
-            self.stopping_crit.target_loss is not None
-            and self.training_log.loss[-1] <= self.stopping_crit.target_loss
+            self.nn.stopping_crit.target_loss is not None
+            and self.training_log.loss[-1] <= self.nn.stopping_crit.target_loss
         ):
             causes.append("Target_loss_reached")
 
         # Minimum loss variation
-        if self.stopping_crit.min_delta_loss is not None:
-            threshold, patience = self.stopping_crit.min_delta_loss
+        if self.nn.stopping_crit.min_delta_loss is not None:
+            threshold, patience = self.nn.stopping_crit.min_delta_loss
 
             if len(self.training_log.loss) >= patience + 1:
                 delta_loss = np.abs(np.diff(self.training_log.loss[-(patience + 1):]))
@@ -156,15 +153,15 @@ class Trainer:
                     causes.append("Minimum_loss_variation_reached")
 
         # Minimum gradient norm
-        if self.stopping_crit.min_gradient_norm is not None:
-            threshold, patience = self.stopping_crit.min_gradient_norm
+        if self.nn.stopping_crit.min_gradient_norm is not None:
+            threshold, patience = self.nn.stopping_crit.min_gradient_norm
 
             if len(self.training_state.gradient_norms) >= patience:
                 if np.all(np.array(self.training_state.gradient_norms[-patience:]) <= threshold):
                     causes.append("Minimum_gradient_norm_reached")
 
-        if self.stopping_crit.min_delta_valid_loss is not None:
-            _, patience = self.stopping_crit.min_delta_valid_loss
+        if self.nn.stopping_crit.min_delta_valid_loss is not None:
+            _, patience = self.nn.stopping_crit.min_delta_valid_loss
 
             if self.es_state.epochs_no_improv >= patience:
                 causes.append("Minimum_validation_loss_variation_reached (ES)")
@@ -192,8 +189,8 @@ class Trainer:
             Loss computed for the current batch.
         """
         self.training_state.outputs, self.training_state.nets = forward_propagation(
-            weights=self.weights,
-            act_funcs=self.architecture.act_funcs,
+            weights=self.nn.weights,
+            act_funcs=self.nn.architecture.act_funcs,
             input_vector=input_vector
         )
 
@@ -214,8 +211,8 @@ class Trainer:
             self
             ) -> None:
         self.training_state.weights_gradients = backward_propagation(
-            weights=self.weights,
-            act_funcs=self.architecture.act_funcs,
+            weights=self.nn.weights,
+            act_funcs=self.nn.architecture.act_funcs,
             output_vectors=self.training_state.outputs,
             computed_nets=self.training_state.nets,
             error_vector=self.training_state.error
@@ -242,10 +239,10 @@ class Trainer:
             Weight gradient matrices.
         """
         self.training_state.previous_weights_deltas = update_weights(
-            weights=self.weights,
+            weights=self.nn.weights,
             weights_gradients=self.training_state.weights_gradients,
             previous_weights_deltas=self.training_state.previous_weights_deltas,
-            update_params=self.update_params
+            update_params=self.nn.update_params
         )
 
     def _training_step(
@@ -265,8 +262,8 @@ class Trainer:
 
         # Compute gradients on training data
         if (
-            self.training_params.batch_size is None
-            or self.stopping_crit.min_gradient_norm is not None
+            self.nn.training_params.batch_size is None
+            or self.nn.stopping_crit.min_gradient_norm is not None
         ):
             self._backprop_wrapper()
             self.training_state.gradient_norms.append(
@@ -274,7 +271,7 @@ class Trainer:
             )
 
         # Evaluate validation loss before updating weights
-        if self.stopping_crit.min_delta_valid_loss is not None:
+        if self.nn.stopping_crit.min_delta_valid_loss is not None:
             validation_loss = self.loss_wrapper(
                 input_vector=valid_input_vector,
                 target_vector=valid_target_vector
@@ -283,7 +280,7 @@ class Trainer:
             self._update_early_stopping(validation_loss)
 
         # Update weights
-        if self.training_params.batch_size is None:
+        if self.nn.training_params.batch_size is None:
             self._update_wrapper()
         else:
             self._training_step_online(
@@ -310,7 +307,7 @@ class Trainer:
         target_vector : np.ndarray
             Target vector for the training example.
         """
-        batch_size = self.training_params.batch_size
+        batch_size = self.nn.training_params.batch_size
         # Split training inputs/targets sets into sub-arrays based on batch_size
         mini_batch_input = np.array_split(
             input_vector,
@@ -325,8 +322,8 @@ class Trainer:
         # Perform forwarding, back-prop and weights update for each mini-batch
         for batch_input, batch_target in zip(mini_batch_input, mini_batch_target):
             output, net = forward_propagation(
-                weights=self.weights,
-                act_funcs=self.architecture.act_funcs,
+                weights=self.nn.weights,
+                act_funcs=self.nn.architecture.act_funcs,
                 input_vector=batch_input
             )
 
@@ -336,18 +333,18 @@ class Trainer:
             )
 
             weights_grad = backward_propagation(
-                weights=self.weights,
-                act_funcs=self.architecture.act_funcs,
+                weights=self.nn.weights,
+                act_funcs=self.nn.architecture.act_funcs,
                 output_vectors=output,
                 computed_nets=net,
                 error_vector=error
             )
 
             self.training_state.previous_weights_deltas = update_weights(
-                weights=self.weights,
+                weights=self.nn.weights,
                 weights_gradients=weights_grad,
                 previous_weights_deltas=self.training_state.previous_weights_deltas,
-                update_params=self.update_params
+                update_params=self.nn.update_params
             )
 
     def training_loop(
@@ -400,11 +397,11 @@ class Trainer:
 
         # Restore the weights corresponding to the lowest validation loss
         if (
-            self.stopping_crit.min_delta_valid_loss is not None
+            self.nn.stopping_crit.min_delta_valid_loss is not None
             and self.es_state.best_weights is not None
         ):
             for weights, best_weights in zip(
-                self.weights,
+                self.nn.weights,
                 self.es_state.best_weights
             ):
                 weights[...] = best_weights

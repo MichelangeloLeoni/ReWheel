@@ -14,3 +14,6 @@
     - Easely create plots
     - Perform encoding
     - Grid search
+## Ideas:
+- [ ] Focus on training the most efficient network, trying to make the
+    weights and number of nodes as little as possible
