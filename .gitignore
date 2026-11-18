@@ -2,6 +2,9 @@
 models/
 *.npy
 
+# TODO
+TODO.md
+
 # Test directory
 tests/
 
