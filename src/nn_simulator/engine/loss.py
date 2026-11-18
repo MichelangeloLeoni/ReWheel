@@ -21,7 +21,6 @@ def compute_error(
     error : np.ndarray
         Difference between prediction and target.
     """
-
     # Automatically select the output layer's output vector from the list
     if isinstance(output_vectors, (list, tuple)):
         prediction = output_vectors[-1]
@@ -33,7 +32,6 @@ def compute_error(
 def compute_loss(
         output_vectors: list[np.ndarray],
         target_vector: np.ndarray,
-        error_vector: np.ndarray | None = None
         ) -> float:
     """
     Computes the total empirical loss (HMSE) 
@@ -46,21 +44,16 @@ def compute_loss(
         (output_vector[-1] represents the final prediction).
     target_vector : np.ndarray
         Target vector for the training example.
-    error_vector : np.ndarray or None, default=None
-        Precomputed residual error vector.
 
     Returns
     -------
     loss : float
         Total loss computed as the Half Mean Squared Error (HMSE).
     """
-
-    # Compute error_vector if it wasn't previously comptued
-    if error_vector is None:
-        error_vector = compute_error(
-            output_vectors=output_vectors,
-            target_vector=target_vector
-            )
+    error_vector = compute_error(
+        output_vectors=output_vectors,
+        target_vector=target_vector
+        )
 
     loss = 0.5*(np.mean(np.sum(error_vector**2, axis=0)))
 

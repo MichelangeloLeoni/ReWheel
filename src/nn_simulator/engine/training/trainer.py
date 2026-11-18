@@ -184,8 +184,7 @@ class Trainer:
 
         loss = compute_loss(
             output_vectors=self.training_state.outputs,
-            target_vector=target_vector,
-            error_vector=self.training_state.error
+            target_vector=target_vector
         )
 
         return loss
