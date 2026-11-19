@@ -1,6 +1,7 @@
 """Module containing the class responsible for training the neural network."""
 from typing import TYPE_CHECKING
 from datetime import datetime
+import sys
 import numpy as np
 from ..classes import TrainingLog
 from ..utils import initialize_weights
@@ -75,6 +76,28 @@ class Trainer:
             )
         )
 
+    def _progress(
+            self
+            ) -> None:
+        """
+        Displays the current training progress in the console.
+
+        Updates a single console line with the current epoch,
+        training loss, and validation loss (if available).
+        """
+        message = (
+            f"Epoch {len(self.training_log.loss)}"
+            f", loss: {self.training_log.loss[-1]:.5g}"
+            + (
+                f", validation loss: "
+                f"{self.training_log.validation_loss[-1]:.5g}"
+                if self.training_log.validation_loss is not None
+                else ""
+            )
+        )
+        sys.stdout.write("\r" + message + "\033[K")
+        sys.stdout.flush()
+
     def training_loop(
             self,
             input_vector: np.ndarray,
@@ -126,6 +149,9 @@ class Trainer:
 
         Notes
         -----
+        Training progress is displayed in real time in the console,
+        including training and validation losses when available.
+
         The training log is printed automatically after training
         is completed.
 
@@ -163,8 +189,11 @@ class Trainer:
                 weights_gradients=weights_gradients
             )
 
+            self._progress()
+
             # Stop training if a stopping condition is met
             if self.training_log.stopping_cause:
+                print()
                 break
 
             # Update the network weights
@@ -198,10 +227,7 @@ class Trainer:
             self
             ) -> None:
         """
-        Prints the training log.
-
-        If a training log is available, its string representation
-        is printed.
+        Prints the training log to the console.
         """
         if self.training_log is not None:
             print(self.training_log)
