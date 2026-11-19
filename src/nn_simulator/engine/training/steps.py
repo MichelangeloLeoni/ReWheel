@@ -1,7 +1,14 @@
-"""Module containing functions to manage neural network propagation and updates during training."""
+"""
+Module containing functions to manage neural network propagation
+and weight updates during training.
+"""
 from typing import TYPE_CHECKING
 import numpy as np
-from ..propagation import forward_propagation, backward_propagation, update_weights
+from ..propagation import (
+    forward_propagation,
+    backward_propagation,
+    update_weights
+)
 from ..loss import compute_error, compute_loss
 
 # NeuralNetwork is only imported during type checking and
@@ -18,20 +25,31 @@ def propagate(
     """
     Performs forward and backward propagation on a set of training samples.
 
+    Computes the network outputs through forward propagation, evaluates
+    the prediction errors, and calculates the weight gradients through
+    backward propagation. It also computes the loss over the training
+    samples.
+
+    No weight updates are performed.
+
     Parameters
     ----------
     nn : NeuralNetwork
-        Neural network to propagate through.
+        Neural network used for propagation.
     input_vector : np.ndarray
-        Input samples, arranged in columns.
+        Training input samples, arranged in columns.
     target_vector : np.ndarray
-        Target values corresponding to the input samples.
+        Target values corresponding to the training samples,
+        arranged in columns.
 
     Returns
     -------
     tuple[list[np.ndarray], float]
-        A tuple containing the weight gradients and the loss computed
-        over the input samples.
+        A tuple containing:
+        - weights_gradients : list of np.ndarray
+            Gradients of the loss with respect to the network weights.
+        - loss : float
+            Loss computed over the training samples.
     """
     outputs, nets = forward_propagation(
         weights=nn.weights,
@@ -62,19 +80,21 @@ def propagate_valid(
         target_vector: np.ndarray
         ) -> float:
     """
-    Computes the loss of a set of validation samples.
+    Computes the loss over a set of validation samples.
 
-    Performs forward propagation without computing gradients or updating
-    the network weights.
+    Performs forward propagation to obtain the network predictions
+    and evaluates the corresponding loss. No gradients are computed
+    and the network weights remain unchanged.
 
     Parameters
     ----------
     nn : NeuralNetwork
-        Neural network to evaluate.
+        Neural network used for validation.
     input_vector : np.ndarray
-        Validation samples, arranged in columns.
+        Validation input samples, arranged in columns.
     target_vector : np.ndarray
-        Target values corresponding to the validation samples.
+        Target values corresponding to the validation samples,
+        arranged in columns.
 
     Returns
     -------
@@ -93,102 +113,117 @@ def propagate_valid(
 
     return loss
 
-def update(
+def update_mini_batches(
         nn: "NeuralNetwork",
-        weights_gradients: list[np.ndarray],
         previous_weights_deltas: list[np.ndarray],
         input_vector: np.ndarray,
         target_vector: np.ndarray,
-        seed: int
+        seed: int | None = None
         ) -> list[np.ndarray]:
     """
-    Updates the neural network weights using batch or mini-batch training.
+    Updates the network weights using shuffled mini-batches.
 
-    When batch training is used, the supplied gradients are directly
-    applied to the network weights. When mini-batch training is used,
-    the training samples are shuffled, divided into mini-batches and
-    processed sequentially.
+    Shuffles the training samples, divides them into mini-batches
+    according to the configured batch size, and performs forward
+    propagation, backward propagation, and weight updates for each
+    mini-batch.
+
+    Weight deltas are retained between consecutive mini-batches
+    to support momentum-based updates.
 
     Parameters
     ----------
     nn : NeuralNetwork
         Neural network whose weights are updated.
-    weights_gradients : list[np.ndarray]
-        Gradients of the network weights computed over the training samples.
-        Used only when batch training is enabled.
-    previous_weights_deltas : list[np.ndarray]
-        Weight updates from the previous training step, used to compute
+    previous_weights_deltas : list of np.ndarray
+        Weight deltas from the previous update step, used to compute
         momentum-based updates.
     input_vector : np.ndarray
-        Training samples, arranged in columns.
+        Training input samples, arranged in columns.
     target_vector : np.ndarray
-        Target values corresponding to the training samples.
-    seed : int
-        Seed used to initialize the random number generator for shuffling
-        the training samples.
+        Target values corresponding to the training samples,
+        arranged in columns.
+    seed : int or None, default=None
+        Random seed used to shuffle the training samples.
+
+        If an integer is provided, the same permutation is generated
+        every time the function is called with that seed.
+
+        If None, a new random seed is generated at each call,
+        resulting in a different permutation.
 
     Returns
     -------
-    list[np.ndarray]
-        Weight updates from the last update step, to be used in the
-        subsequent training step.
+    list of np.ndarray
+        Weight deltas resulting from the final mini-batch update.
+        These are used as the previous weight deltas in the next
+        training iteration.
+
+    Notes
+    -----
+    The batch size is retrieved from the neural network training
+    parameters.
+
+    The final mini-batch may contain fewer samples than the configured
+    batch size if the number of training samples is not divisible
+    by the batch size.
+
+    Providing a fixed seed ensures reproducible shuffling across
+    function calls, while using None generates independent shuffling
+    sequences across calls.
     """
     batch_size = nn.training_params.batch_size
 
-    # If we are batch-training, apply the supplied gradients directly
-    if batch_size is None:
+    # If no seed is provided generate a different seed for each
+    # mini-batch training cycle
+    if seed is None:
+        seed = np.random.SeedSequence().generate_state(
+            1, dtype=np.uint32
+        )[0].item()
+
+    # Shuffle training samples
+    indices = np.random.default_rng(seed).permutation(input_vector.shape[1])
+    input_vector = input_vector[:, indices]
+    target_vector = target_vector[:, indices]
+
+    # Split input and target samples into mini-batches
+    mini_batch_input = np.array_split(
+        input_vector,
+        np.arange(batch_size, input_vector.shape[1], batch_size),
+        axis=1
+    )
+    mini_batch_target = np.array_split(
+        target_vector,
+        np.arange(batch_size, target_vector.shape[1], batch_size),
+        axis=1
+    )
+
+    # Perform updates for each mini-batch
+    for batch_input, batch_target in zip(
+            mini_batch_input,
+            mini_batch_target
+            ):
+        output, net = forward_propagation(
+            weights=nn.weights,
+            act_funcs=nn.architecture.act_funcs,
+            input_vector=batch_input
+        )
+        error = compute_error(
+            output_vectors=output,
+            target_vector=batch_target
+        )
+        weights_grad = backward_propagation(
+            weights=nn.weights,
+            act_funcs=nn.architecture.act_funcs,
+            output_vectors=output,
+            computed_nets=net,
+            error_vector=error
+        )
         previous_weights_deltas = update_weights(
             weights=nn.weights,
-            weights_gradients=weights_gradients,
+            weights_gradients=weights_grad,
             previous_weights_deltas=previous_weights_deltas,
             update_params=nn.update_params
         )
-
-    # If we are mini-batch-training, split the samples into mini-batches
-    # and perform a separate training step for each mini-batch
-    else:
-        # Shuffle training samples
-        rng = np.random.default_rng(seed)
-        indices = rng.permutation(input_vector.shape[1])
-        input_vector = input_vector[:, indices]
-        target_vector = target_vector[:, indices]
-
-        # Split input and target samples into mini-batches
-        mini_batch_input = np.array_split(
-            input_vector,
-            np.arange(batch_size, input_vector.shape[1], batch_size),
-            axis=1
-        )
-        mini_batch_target = np.array_split(
-            target_vector,
-            np.arange(batch_size, target_vector.shape[1], batch_size),
-            axis=1
-        )
-
-        # Perform forward propagation, backpropagation and weight updates
-        # for each mini-batch
-        for batch_input, batch_target in zip(mini_batch_input, mini_batch_target):
-            output, net = forward_propagation(
-                weights=nn.weights,
-                act_funcs=nn.architecture.act_funcs,
-                input_vector=batch_input
-            )
-            error = compute_error(
-                output_vectors=output,
-                target_vector=batch_target
-            )
-            weights_grad = backward_propagation(
-                weights=nn.weights,
-                act_funcs=nn.architecture.act_funcs,
-                output_vectors=output,
-                computed_nets=net,
-                error_vector=error
-            )
-            previous_weights_deltas = update_weights(
-                weights=nn.weights,
-                weights_gradients=weights_grad,
-                previous_weights_deltas=previous_weights_deltas,
-                update_params=nn.update_params
-            )
 
     return previous_weights_deltas

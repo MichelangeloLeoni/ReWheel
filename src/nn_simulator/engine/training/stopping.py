@@ -8,7 +8,7 @@ from .steps import propagate_valid
 
 # NeuralNetwork is only imported during type checking and
 # ignored during runtime, preventing circular imports while
-# allowing type hinting.
+# allowing type hinting
 if TYPE_CHECKING:
     from ..nn_sim import NeuralNetwork
 

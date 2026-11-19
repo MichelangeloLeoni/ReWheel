@@ -242,10 +242,8 @@ class NeuralNetwork:
         have not already been initialized.
 
         The training results are stored in the ``training_log``
-        attribute. The training log is also printed after training
-        is completed.
+        attribute.
         """
-
         # Check if both validation vectors are passed to the function
         if self.stopping_crit.min_delta_valid_loss is not None:
             if valid_input_vector is None or valid_target_vector is None:
@@ -271,16 +269,3 @@ class NeuralNetwork:
             valid_input_vector=valid_input_vector,
             valid_target_vector=valid_target_vector
         )
-
-        # Print training log
-        self.log()
-
-    def log(self) -> None:
-        """
-        Print the training log.
-
-        If a training log is available, its string representation
-        is printed.
-        """
-        if self.training_log is not None:
-            print(self.training_log)

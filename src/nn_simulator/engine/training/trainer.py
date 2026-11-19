@@ -4,12 +4,12 @@ from datetime import datetime
 import numpy as np
 from ..classes import TrainingLog
 from ..utils import initialize_weights
-from .steps import propagate, update
+from .steps import propagate, update_weights, update_mini_batches
 from .stopping import StoppingManager
 
 # NeuralNetwork is only imported during type checking and
 # ignored during runtime, preventing circular imports while
-# allowing type hinting.
+# allowing type hinting
 if TYPE_CHECKING:
     from ..nn_sim import NeuralNetwork
 
@@ -17,25 +17,26 @@ class Trainer:
     """
     Coordinates the training process of a neural network.
 
-    The Trainer manages weight initialization, the training loop,
-    parameter updates, and stopping criteria evaluation. It delegates
-    forward and backward propagation to the appropriate functions and
-    uses a StoppingManager to monitor the training progress.
+    The Trainer initializes the network weights, manages the training
+    loop, performs weight updates, and monitors the configured stopping
+    criteria.
 
     Parameters
     ----------
     neural_network : NeuralNetwork
         Neural network to be trained. The Trainer operates directly on
-        its weights, architecture, and training parameters.
+        its weights, architecture, training parameters, and stopping
+        criteria.
 
     Attributes
     ----------
     nn : NeuralNetwork
         Neural network being trained.
     training_log : TrainingLog
-        Log containing training metrics, initialization information,
-        and stopping information for the current training process.
+        Log containing training metrics, validation metrics (if enabled),
+        initialization information, and stopping information.
     """
+
     def __init__(
             self,
             neural_network: "NeuralNetwork"
@@ -43,7 +44,7 @@ class Trainer:
         """
         Initializes the Trainer and prepares the neural network for training.
 
-        Initializes the network weights according to the architecture
+        Initializes the network weights according to its architecture
         and training parameters, then creates a TrainingLog instance
         to record the training process.
 
@@ -84,14 +85,19 @@ class Trainer:
         """
         Executes the neural network training loop.
 
-        At each epoch, the method:
+        At each training iteration, the method:
         1. Computes weight gradients and training loss through propagation.
-        2. Evaluates the configured stopping criteria.
+        2. Evaluates the configured stopping criteria using a
+           StoppingManager.
         3. Stops training if one or more stopping criteria are met.
-        4. Updates the network weights using the computed gradients.
+        4. Updates the network weights using full-batch or mini-batch
+           gradient descent.
 
-        Momentum-related weight updates are handled by retaining the
-        previous weight deltas between epochs.
+        For mini-batch training, the training samples are shuffled and
+        divided into batches before the weight updates are performed.
+
+        Momentum-related updates are handled by retaining the weight
+        deltas from the previous update step.
 
         The training start and end timestamps are recorded in the
         associated TrainingLog.
@@ -99,22 +105,32 @@ class Trainer:
         Parameters
         ----------
         input_vector : np.ndarray
-            Training input data.
+            Training input samples, arranged in columns.
         target_vector : np.ndarray
-            Target values corresponding to the training input data.
+            Target values corresponding to the training samples,
+            arranged in columns.
         valid_input_vector : np.ndarray or None, optional
-            Validation input data used to compute validation loss when
-            validation-based early stopping is enabled. Defaults to None.
+            Validation input samples, arranged in columns. Used to
+            evaluate validation loss when validation-based stopping
+            criteria are enabled. Defaults to None.
         valid_target_vector : np.ndarray or None, optional
-            Target values corresponding to the validation input data.
-            Defaults to None.
+            Target values corresponding to the validation samples,
+            arranged in columns. Defaults to None.
 
         Returns
         -------
         TrainingLog
-            Training log containing the recorded losses, validation
-            losses (if enabled), stopping causes, random seed, and
-            training timestamps.
+            Training log containing the recorded training losses,
+            validation losses (if enabled), stopping causes, random
+            seed, and training timestamps.
+
+        Notes
+        -----
+        The training log is printed automatically after training
+        is completed.
+
+        The training loop terminates when at least one configured
+        stopping criterion is met.
         """
         # Initialize previous weights deltas to zero
         previous_weights_deltas = [
@@ -132,15 +148,14 @@ class Trainer:
 
         # Loop until a stopping condition is met
         while True:
-            # Propagate trough the network
+            # Propagate through the network
             weights_gradients, loss = propagate(
                 nn=self.nn,
                 input_vector=input_vector,
                 target_vector=target_vector
             )
 
-            # Compute the quantities needed for the stopping
-            # creiteria, then check if anyone of them is met
+            # Evaluate the configured stopping criteria
             st.check_stopping(
                 valid_input_vector=valid_input_vector,
                 valid_target_vector=valid_target_vector,
@@ -148,21 +163,45 @@ class Trainer:
                 weights_gradients=weights_gradients
             )
 
-            # Break the cycle if a stopping condition is met
+            # Stop training if a stopping condition is met
             if self.training_log.stopping_cause:
                 break
 
             # Update the network weights
-            previous_weights_deltas = update(
-                nn=self.nn,
-                weights_gradients=weights_gradients,
-                previous_weights_deltas=previous_weights_deltas,
-                input_vector=input_vector,
-                target_vector=target_vector,
-                seed=self.training_log.seed
-            )
+            # Full-batch training
+            if self.nn.training_params.batch_size is None:
+                previous_weights_deltas = update_weights(
+                    weights=self.nn.weights,
+                    weights_gradients=weights_gradients,
+                    previous_weights_deltas=previous_weights_deltas,
+                    update_params=self.nn.update_params
+                )
+
+            # Mini-batch training
+            else:
+                previous_weights_deltas = update_mini_batches(
+                    nn=self.nn,
+                    previous_weights_deltas=previous_weights_deltas,
+                    input_vector=input_vector,
+                    target_vector=target_vector,
+                    seed=self.nn.training_params.seed
+                )
 
         # Store training stopping time in training_log
         self.training_log.training_start_stop.append(datetime.now())
 
+        self.log()
+
         return self.training_log
+
+    def log(
+            self
+            ) -> None:
+        """
+        Prints the training log.
+
+        If a training log is available, its string representation
+        is printed.
+        """
+        if self.training_log is not None:
+            print(self.training_log)
