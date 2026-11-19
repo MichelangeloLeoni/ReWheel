@@ -1,7 +1,6 @@
 """Module defining the TrainingLog dataclass."""
 from datetime import datetime
 from dataclasses import dataclass
-from .training_state import TrainingState
 
 @dataclass
 class TrainingLog:
@@ -29,9 +28,6 @@ class TrainingLog:
         Epoch associated with the lowest validation loss.
         Used to identify the best model according to its
         generalization performance.
-    training_state : TrainingState or None, default=None
-        Store an instance of TrainingState providing
-        access to training state variables for debugging purposes.
 
     Notes
     -----
@@ -64,7 +60,6 @@ class TrainingLog:
     training_start_stop: tuple[datetime, datetime] | None = None
     validation_loss: list[float] | None = None
     best_epoch: int | None = None
-    training_state: TrainingState | None = None
 
     def __repr__(self):
         """Return a formatted summary of the training session."""
