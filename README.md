@@ -1,11 +1,16 @@
 # ReWheel
 
-A lightweight feedforward neural network simulator implemented in Python using NumPy.
+A lightweight feedforward neural network simulator and toolkit.
+**_Because reinventing the wheel is fun!_**
+
+---
+
+ReWheel is a lightweight feedforward neural network simulator implemented from scratch in Python using NumPy.
 
 ## Features
 
 - Fully connected feedforward neural networks.
-- Configurable network architecture and activation functions.
+- Configurable network architectures and activation functions.
 - Forward and backward propagation.
 - Batch and mini-batch gradient descent.
 - Momentum and L2 regularization.
@@ -21,7 +26,7 @@ A lightweight feedforward neural network simulator implemented in Python using N
 pip install ReWheel
 ```
 
-### Install from repository
+### Install from source
 
 Clone the repository:
 
@@ -47,7 +52,7 @@ First, import the required classes and define the network architecture.
 ```python
 import numpy as np
 
-from ReWheel import (
+from rewheel import (
     Architecture,
     NeuralNetwork,
     TrainingParameters,
