@@ -1,4 +1,4 @@
-# nn_simulator
+# ReWheel
 
 A lightweight feedforward neural network simulator implemented in Python using NumPy.
 

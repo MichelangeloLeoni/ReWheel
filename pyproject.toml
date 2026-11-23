@@ -1,6 +1,6 @@
 [project]
-name = "nn_simulator"
-version = "1.1.0"
+name = "ReWheel"
+version = "1.2.0"
 description = "A lightweight neural network simulator and toolkit"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -24,14 +24,14 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
 only-include = [
-    "src/nn_simulator",
+    "src/rewheel",
     "README.md",
     "LICENSE",
     "pyproject.toml",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/nn_simulator"]
+packages = ["src/rewheel"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
