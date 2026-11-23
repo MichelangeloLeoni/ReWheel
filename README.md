@@ -18,7 +18,7 @@ A lightweight feedforward neural network simulator implemented in Python using N
 ### Install from PyPI
 
 ```bash
-pip install nn_simulator
+pip install ReWheel
 ```
 
 ### Install from repository
@@ -27,7 +27,7 @@ Clone the repository:
 
 ```bash
 git clone <repository-url>
-cd nn_simulator
+cd ReWheel
 ```
 
 Install the package and its dependencies:
@@ -47,7 +47,7 @@ First, import the required classes and define the network architecture.
 ```python
 import numpy as np
 
-from nn_simulator import (
+from ReWheel import (
     Architecture,
     NeuralNetwork,
     TrainingParameters,
