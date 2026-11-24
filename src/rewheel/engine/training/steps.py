@@ -9,7 +9,8 @@ from ..propagation import (
     backward_propagation,
     update_weights
 )
-from ..loss import compute_error, compute_loss
+from ..loss import compute_loss
+from ..delta import compute_output_delta
 
 # NeuralNetwork is only imported during type checking and
 # ignored during runtime, preventing circular imports while
@@ -51,25 +52,27 @@ def propagate(
         - loss : float
             Loss computed over the training samples.
     """
-    outputs, nets = forward_propagation(
+    results = forward_propagation(
         weights=nn.weights,
         act_funcs=nn.architecture.act_funcs,
         input_vector=input_vector
     )
-    error = compute_error(
-        output_vectors=outputs,
-        target_vector=target_vector
+    output_delta = compute_output_delta(
+        forward_results=results,
+        target_vector=target_vector,
+        act_func=nn.architecture.act_funcs,
+        loss=nn.loss
     )
     weights_gradients = backward_propagation(
+        forward_results=results,
         weights=nn.weights,
         act_funcs=nn.architecture.act_funcs,
-        output_vectors=outputs,
-        computed_nets=nets,
-        error_vector=error
+        output_delta=output_delta
     )
     loss = compute_loss(
-        output_vectors=outputs,
-        target_vector=target_vector
+        output_vectors=results.output_vectors,
+        target_vector=target_vector,
+        loss_function=nn.loss
     )
 
     return weights_gradients, loss
@@ -101,14 +104,15 @@ def propagate_valid(
     float
         Loss computed over the validation samples.
     """
-    outputs, _ = forward_propagation(
+    results = forward_propagation(
         weights=nn.weights,
         act_funcs=nn.architecture.act_funcs,
         input_vector=input_vector
     )
     loss = compute_loss(
-        output_vectors=outputs,
-        target_vector=target_vector
+        output_vectors=results.output_vectors,
+        target_vector=target_vector,
+        loss_function=nn.loss
     )
 
     return loss
@@ -203,21 +207,22 @@ def update_mini_batches(
             mini_batch_input,
             mini_batch_target
             ):
-        output, net = forward_propagation(
+        results = forward_propagation(
             weights=nn.weights,
             act_funcs=nn.architecture.act_funcs,
             input_vector=batch_input
         )
-        error = compute_error(
-            output_vectors=output,
-            target_vector=batch_target
+        output_delta = compute_output_delta(
+            forward_results=results,
+            target_vector=batch_target,
+            act_func=nn.architecture.act_funcs,
+            loss=nn.loss
         )
         weights_grad = backward_propagation(
+            forward_results=results,
             weights=nn.weights,
             act_funcs=nn.architecture.act_funcs,
-            output_vectors=output,
-            computed_nets=net,
-            error_vector=error
+            output_delta=output_delta
         )
         previous_weights_deltas = update_weights(
             weights=nn.weights,

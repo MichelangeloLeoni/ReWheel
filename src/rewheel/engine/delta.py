@@ -2,6 +2,7 @@
 import numpy as np
 from .activation_functions import af_list
 from .loss import compute_error
+from .classes import ForwardResults
 
 def compute_delta(
         propagated_error: np.ndarray,
@@ -35,14 +36,49 @@ def compute_delta(
         )
 
 def compute_output_delta(
-        output_vectors: list[np.ndarray],
+        forward_results: ForwardResults,
         target_vector: np.ndarray,
-        computed_nets: list[np.ndarray],
         act_func: str,
         loss: str
     ):
+    """
+    Computes the output layer delta according to the selected loss
+    function and output activation function.
+
+    Parameters
+    ----------
+    forward_results : ForwardResults
+        Results of the forward propagation, containing the network
+        predictions and the net input of each layer.
+    target_vector : np.ndarray
+        Target values corresponding to the input samples.
+    act_func : str
+        Activation function used by the output layer, represented
+        by its corresponding name.
+    loss : str
+        Loss function used to compute the training error.
+        Supported loss functions are HMSE, BCE and CCE.
+
+    Returns
+    -------
+    output_delta : np.ndarray
+        Delta vector of the output layer, used to initialize
+        backpropagation. Its computation depends on the selected
+        loss function:
+
+        - HMSE: computes the delta by applying the derivative
+          of the output activation function to the error vector.
+        - BCE and CCE: directly uses the error vector as the
+          output delta.
+    """
+    act_func = (
+        act_func[-1]
+        if isinstance(act_func, (list, tuple))
+        else act_func
+    )
+
     error_vector = compute_error(
-        output_vectors=output_vectors,
+        output_vectors=forward_results.output_vectors,
         target_vector=target_vector
     )
 
@@ -51,7 +87,7 @@ def compute_output_delta(
         output_delta = compute_delta(
             propagated_error=error_vector,
             act_func=act_func,
-            computed_net=computed_nets[-1]
+            computed_net=forward_results.computed_nets[-1]
         )
 
     if loss in ('BCE', 'CCE'):

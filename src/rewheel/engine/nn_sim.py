@@ -213,11 +213,12 @@ class NeuralNetwork:
             )
 
         # Performs forward propagation in the neural network
-        output_vector = forward_propagation(
+        results = forward_propagation(
             weights=self.weights,
             act_funcs=self.architecture.act_funcs,
             input_vector=input_vector
-        )[0][-1]
+        )
+        output_vector = results.output_vectors[-1]
 
         # Returns only the output layer output vector
         # a.k.a. final prediction

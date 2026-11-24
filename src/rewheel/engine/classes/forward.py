@@ -1,9 +1,9 @@
-"""Module defining the ForwardResult dataclass."""
+"""Module defining the ForwardResults dataclass."""
 from dataclasses import dataclass
 import numpy as np
 
 @dataclass
-class ForwardResult:
+class ForwardResults:
     """
     Stores the intermediate results of a forward propagation.
 

@@ -99,7 +99,7 @@ def compute_binary_cross_entropy(
     )
 
     # Clip the probabilities to avoid log(0)
-    epsilon = np.finfo(float).eps
+    epsilon = np.finfo(float).eps # pylint: disable=no-member
     prediction = np.clip(prediction, epsilon, 1 - epsilon)
 
     loss = -np.mean(
@@ -147,7 +147,7 @@ def compute_categorical_cross_entropy(
     )
 
     # Clip the probabilities to avoid log(0)
-    epsilon = np.finfo(float).eps
+    epsilon = np.finfo(float).eps # pylint: disable=no-member
     prediction = np.clip(prediction, epsilon, 1.0)
 
     loss = -np.mean(

@@ -6,13 +6,13 @@ import numpy as np
 from . import activation_functions as af
 from .delta import compute_delta
 from .utils import add_bias, compute_gradient
-from .classes import UpdateParameters
+from .classes import UpdateParameters, ForwardResults
 
 def forward_propagation(
         weights: list[np.ndarray],
         act_funcs: list[str],
         input_vector: np.ndarray
-        ) -> tuple[list[np.ndarray], list[np.ndarray]]:
+        ) -> ForwardResults:
     """
     Performs the forwarding in a neural network.
 
@@ -28,30 +28,39 @@ def forward_propagation(
 
     Returns
     -------
-    output_vectors : list of np.ndarray
-        Output vector of each layer, including the bias term for all
-        hidden layers. The final element, output_vectors[-1], is the
-        network's prediction and does not include a bias term.
-    computed_nets : list of np.ndarray
-        Net input of each layer before applying the activation function.
+    results : ForwardResults
+        Object containing the intermediate results of the
+        forward propagation:
+
+            - output_vectors : list of np.ndarray
+                Outputs of each layer, including the input layer.
+                Bias terms are appended to the input and hidden layer
+                outputs, but not to the output layer. The final element
+                represents the network predictions.
+
+            - computed_nets : list of np.ndarray
+                Net inputs of each layer, computed before applying
+                the corresponding activation function.
     """
-    # Initialize ouput_vector and computed_nets lists
+    # Initialize ForwardResults instance
     num_layers = len(weights)
-    output_vectors = [None] * (num_layers + 1)
-    computed_nets = [None] * num_layers
+    results = ForwardResults(
+        output_vectors = [None] * (num_layers + 1),
+        computed_nets = [None] * num_layers
+    )
 
     # Apply bias to the input vector
     # output_vector[0] represents the output of the input layer
     # that will be fed into the first hidden layer
     is_single_example = input_vector.ndim == 1
-    output_vectors[0] = add_bias(input_vector, is_single_example)
+    results.output_vectors[0] = add_bias(input_vector, is_single_example)
 
     # Start propagating through layers
     for i, layer_weights in enumerate(weights):
         # Compute net of the whole layer
-        net = layer_weights @ output_vectors[i]
+        net = layer_weights @ results.output_vectors[i]
         # Store the net of the layer
-        computed_nets[i] = net
+        results.computed_nets[i] = net
 
         # Apply activation function
         layer_output = af.af_list[act_funcs[i]](net)
@@ -59,19 +68,18 @@ def forward_propagation(
         # Compute the output to be passed as input onto the next layer
         if i < num_layers-1:
             # The next layer input will be the biased version of the current layer output
-            output_vectors[i+1] = add_bias(layer_output, is_single_example)
+            results.output_vectors[i+1] = add_bias(layer_output, is_single_example)
         else:
             # When we arrive at the output layer we save the output without adding a bias
             # This represents the neural network final prediction
-            output_vectors[i+1] = layer_output
+            results.output_vectors[i+1] = layer_output
 
-    return output_vectors, computed_nets
+    return results
 
 def backward_propagation(
+        forward_results: ForwardResults,
         weights: list[np.ndarray],
         act_funcs: list[str],
-        output_vectors: list[np.ndarray],
-        computed_nets: list[np.ndarray],
         output_delta: np.ndarray
         ) -> list[np.ndarray]:
     """
@@ -81,17 +89,14 @@ def backward_propagation(
 
     Parameters
     ----------
+    forward_results : ForwardResults
+        Results of the forward propagation, containing the output
+        vectors and net inputs computed for each layer.
     weights : list of np.ndarray
-        List of weights matrices of the neural network.
+        List of weight matrices of the neural network.
     act_funcs : list of str
-        List of activation functions of each layer
-        represented by a string.
-    output_vectors : list of np.ndarray
-        Output vector of each layer, including the bias term for all
-        hidden layers. The final element, output_vectors[-1], is the
-        network's prediction and does not include a bias term.
-    computed_nets : list of np.ndarray
-        Net input of each layer before applying the activation function.
+        List of activation functions used by each layer,
+        represented by their corresponding names.
     output_delta : np.ndarray
         Delta vector of the output layer, computed from the network
         prediction, target values, loss function and output activation.
@@ -102,7 +107,7 @@ def backward_propagation(
         List containing the negative weights gradient matrix of each layer.
     """
     num_layers = len(weights)
-    is_single_example = output_vectors[-1].ndim == 1
+    is_single_example = forward_results.output_vectors[-1].ndim == 1
 
     # Initialize the weight gradients list
     weights_gradients = [None] * num_layers
@@ -112,7 +117,7 @@ def backward_propagation(
     # Compute the output layer gradient
     weights_gradients[-1] = compute_gradient(
         delta=prev_delta,
-        prev_layer_output=output_vectors[-2],
+        prev_layer_output=forward_results.output_vectors[-2],
         is_single_example=is_single_example
     )
 
@@ -129,13 +134,13 @@ def backward_propagation(
         delta = compute_delta(
             propagated_error=propagated_error,
             act_func=act_funcs[i],
-            computed_net=computed_nets[i]
+            computed_net=forward_results.computed_nets[i]
         )
 
         # Compute weights gradient for the current layer
         weights_gradients[i] = compute_gradient(
             delta=delta,
-            prev_layer_output=output_vectors[i],
+            prev_layer_output=forward_results.output_vectors[i],
             is_single_example=is_single_example
         )
 

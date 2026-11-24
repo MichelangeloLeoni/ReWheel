@@ -5,4 +5,4 @@ from .training_params import TrainingParameters
 from .training_log import TrainingLog
 from .stopping_crit import StoppingCriteria
 from .update_params import UpdateParameters
-from .forward import ForwardResult
+from .forward import ForwardResults
