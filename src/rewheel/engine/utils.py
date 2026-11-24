@@ -4,7 +4,6 @@ in the neural network simulator.
 """
 from functools import wraps
 import numpy as np
-from . import activation_functions as af
 from .classes import Architecture
 
 def check_input(func: callable) -> callable:
@@ -83,37 +82,6 @@ def add_bias(
                 )
             )
 
-def compute_delta(
-        propagated_error: np.ndarray,
-        act_func: str,
-        computed_net: np.ndarray
-        ) -> np.ndarray:
-    """
-    Computes the delta vector of a layer, needed to compute the
-    weights gradient when back-propagating.
-
-    Parameters
-    ----------
-    propagated_error : np.ndarray
-        Array containing the propagated delta coming from the previous layer.
-        For the output layer is simply the residual error vector.
-    act_func : str
-        Activation function of the layer, represented by a
-        string. Needed to compute it's derivative.
-    computed_net : np.ndarray
-        Net vector of the layer, previously computed during
-        forwarding.
-
-    Returns
-    -------
-    np.ndarray
-        Computed delta vector of the layer.
-    """
-    # Here * performs element-wise matrix product
-    return propagated_error * (
-        af.af_list[str(act_func) + "_DERIVATIVE"](computed_net)
-        )
-
 def compute_gradient(
         delta: np.ndarray,
         prev_layer_output: np.ndarray,
@@ -140,6 +108,26 @@ def compute_gradient(
     return  (np.outer(delta, prev_layer_output)
                 if is_single_example
                 else delta @ prev_layer_output.T / prev_layer_output.shape[1]
+    )
+
+def compute_gradient_norm(
+        weights_gradients: list[np.ndarray]
+        ) -> float:
+    """
+    Compute the global L2 norm of the weights gradients.
+
+    Parameters
+    ----------
+    weights_gradients : list of np.ndarray
+        List containing the negative weights gradient matrix of each layer.
+
+    Returns
+    -------
+    float
+        Global L2 norm of all weights gradients.
+    """
+    return np.sqrt(
+        sum(np.sum(grad ** 2) for grad in weights_gradients)
     )
 
 def initialize_weights(
@@ -199,23 +187,3 @@ def initialize_weights(
                 )
 
     return seed
-
-def compute_gradient_norm(
-        weights_gradients: list[np.ndarray]
-        ) -> float:
-    """
-    Compute the global L2 norm of the weights gradients.
-
-    Parameters
-    ----------
-    weights_gradients : list of np.ndarray
-        List containing the negative weights gradient matrix of each layer.
-
-    Returns
-    -------
-    float
-        Global L2 norm of all weights gradients.
-    """
-    return np.sqrt(
-        sum(np.sum(grad ** 2) for grad in weights_gradients)
-    )

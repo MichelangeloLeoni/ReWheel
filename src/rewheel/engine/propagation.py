@@ -4,7 +4,8 @@ and weights update in a neural network.
 """
 import numpy as np
 from . import activation_functions as af
-from .utils import add_bias, compute_delta, compute_gradient
+from .delta import compute_delta
+from .utils import add_bias, compute_gradient
 from .classes import UpdateParameters
 
 def forward_propagation(
