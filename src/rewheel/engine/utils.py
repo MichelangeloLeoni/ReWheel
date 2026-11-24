@@ -150,7 +150,7 @@ def compute_gradient(
     Returns
     -------
     np.ndarray
-        Computed weights gradient of the layer.
+        Negative gradient of the weights matrix.
     """
     return  (np.outer(delta, prev_layer_output)
                 if is_single_example

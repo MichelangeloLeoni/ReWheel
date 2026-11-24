@@ -35,7 +35,6 @@ def forward_propagation(
     computed_nets : list of np.ndarray
         Net input of each layer before applying the activation function.
     """
-
     # Initialize ouput_vector and computed_nets lists
     num_layers = len(weights)
     output_vectors = [None] * (num_layers + 1)
@@ -73,7 +72,7 @@ def backward_propagation(
         act_funcs: list[str],
         output_vectors: list[np.ndarray],
         computed_nets: list[np.ndarray],
-        error_vector: np.ndarray
+        output_delta: np.ndarray
         ) -> list[np.ndarray]:
     """
     Performs the back-propagation in a neural network.
@@ -93,15 +92,15 @@ def backward_propagation(
         network's prediction and does not include a bias term.
     computed_nets : list of np.ndarray
         Net input of each layer before applying the activation function.
-    error_vector : np.ndarray
-        Difference between prediction and target.
+    output_delta : np.ndarray
+        Delta vector of the output layer, computed from the network
+        prediction, target values, loss function and output activation.
 
     Returns
     -------
     weights_gradients : list of np.ndarray
         List containing the negative weights gradient matrix of each layer.
     """
-
     num_layers = len(weights)
     is_single_example = output_vectors[-1].ndim == 1
 
@@ -109,12 +108,7 @@ def backward_propagation(
     weights_gradients = [None] * num_layers
 
     # Compute the output layer delta
-    prev_delta = compute_delta(
-        propagated_error=error_vector,
-        act_func=act_funcs[-1],
-        computed_net=computed_nets[-1]
-    )
-
+    prev_delta = output_delta
     # Compute the output layer gradient
     weights_gradients[-1] = compute_gradient(
         delta=prev_delta,
@@ -193,7 +187,6 @@ def update_weights(
         w_new = w + delta_w - lambda * w
     if full_independence=True.
     """
-
     # Initialize weights delta list
     weights_deltas = []
 
