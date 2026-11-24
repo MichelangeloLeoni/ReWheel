@@ -181,31 +181,19 @@ def compute_loss(
     target_vector : np.ndarray
         Target vectors containing the expected output values.
     loss_function : str, default="HMSE"
-        Identifier of the loss function to use. Supported values
-        are "HMSE", "BCE" and "CCE".
+        Identifier of the loss function to use.
 
     Returns
     -------
     float
         Loss value computed using the selected loss function.
 
-    Raises
-    ------
-    ValueError
-        If the specified loss function is not supported.
-
     Notes
     -----
     The available loss functions are stored in the
     ``loss_functions`` dictionary.
     """
-    try:
-        function = loss_functions[loss_function.upper()]
-    except (KeyError, AttributeError) as exc:
-        raise ValueError(
-            f"Loss function {loss_function} is not supported. "
-            f"Supported loss functions are: {loss_functions}"
-        ) from exc
+    function = loss_functions[loss_function]
 
     return function(
         output_vectors=output_vectors,

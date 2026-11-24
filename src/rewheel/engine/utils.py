@@ -5,6 +5,53 @@ in the neural network simulator.
 from functools import wraps
 import numpy as np
 from .classes import Architecture
+from .loss import loss_functions
+
+def check_loss(
+        act_funcs: list[str],
+        loss: str
+    ) -> None:
+    """
+    Check whether the selected loss function is compatible with the
+    output layer activation function.
+
+    Parameters
+    ----------
+    act_funcs : list[str]
+        List of activation functions used by the neural network.
+    loss : str
+        Name of the loss function to be used.
+
+    Raises
+    ------
+    ValueError
+        If the loss function is not supported or is incompatible with
+        the output layer activation function.
+    """
+    loss = loss.upper()
+
+    if loss not in loss_functions:
+        raise ValueError(
+            f"Loss function '{loss}' is not supported. "
+            f"Supported loss functions are: {loss_functions}"
+        )
+
+    output_activation = act_funcs[-1].upper()
+
+    if loss == 'HMSE' and output_activation == 'SOFTMAX':
+        raise ValueError(
+            "HMSE loss cannot be used with a Softmax output layer."
+        )
+
+    if loss == 'BCE' and output_activation != 'SIGMOID':
+        raise ValueError(
+            "BCE loss requires a Sigmoid output layer."
+        )
+
+    if loss == 'CCE' and output_activation != 'SOFTMAX':
+        raise ValueError(
+            "CCE loss requires a Softmax output layer."
+        )
 
 def check_input(func: callable) -> callable:
     """

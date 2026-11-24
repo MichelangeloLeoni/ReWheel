@@ -8,7 +8,7 @@ from .classes import (
     StoppingCriteria
 )
 from .propagation import forward_propagation
-from .utils import check_input, initialize_weights
+from .utils import check_loss, check_input, initialize_weights
 from .training.trainer import Trainer
 
 class NeuralNetwork:
@@ -38,6 +38,9 @@ class NeuralNetwork:
     stopping_criteria : StoppingCriteria or None, default=None
         Criteria determining when the training process terminates.
         If None, they must be provided before calling the train method.
+    loss : str, default='HMSE'
+        Loss function used to evaluate the network predictions
+        during training.
 
     Attributes
     ----------
@@ -53,6 +56,9 @@ class NeuralNetwork:
         Parameters controlling the training process.
     stopping_crit : StoppingCriteria or None
         Criteria determining when the training process terminates.
+    loss : str
+        Loss function used to evaluate the network predictions
+        during training.
     training_log : TrainingLog or None
         Log containing the results and history of the latest training
         process.
@@ -68,7 +74,8 @@ class NeuralNetwork:
             architecture: Architecture,
             training_parameters: TrainingParameters | None = None,
             update_parameters: UpdateParameters | None = None,
-            stopping_criteria: StoppingCriteria | None = None
+            stopping_criteria: StoppingCriteria | None = None,
+            loss: str = 'HMSE'
             ):
         # Initialize nn architecture attribute
         self.architecture = architecture
@@ -80,6 +87,12 @@ class NeuralNetwork:
         self.update_params = update_parameters
         self.training_params = training_parameters
         self.stopping_crit = stopping_criteria
+        # Initialize loss attribute
+        check_loss(
+            act_funcs=self.architecture.act_funcs,
+            loss=loss
+        )
+        self.loss = loss.upper()
         # Initialize training log attribute to None
         self.training_log: TrainingLog = None
 
@@ -126,7 +139,8 @@ class NeuralNetwork:
             self,
             update_params: UpdateParameters | None = None,
             training_params: TrainingParameters | None = None,
-            stopping_crit: StoppingCriteria | None = None
+            stopping_crit: StoppingCriteria | None = None,
+            loss: str | None = None
             ) -> None:
         """
         Configure the training and update parameters of the network.
@@ -144,6 +158,16 @@ class NeuralNetwork:
             batch size and weight initialization settings.
         stopping_crit : StoppingCriteria or None, default=None
             Criteria determining when the training process terminates.
+        loss : str or None, default=None
+            Loss function used to evaluate network predictions during
+            training. Must be compatible with the output layer
+            activation function.
+
+        Raises
+        ------
+        ValueError
+            If the specified loss function is unsupported or incompatible
+            with the output layer activation function.
         """
         if update_params is not None:
             self.update_params = update_params
@@ -151,6 +175,12 @@ class NeuralNetwork:
             self.training_params = training_params
         if stopping_crit is not None:
             self.stopping_crit = stopping_crit
+        if loss is not None:
+            check_loss(
+                act_funcs=self.architecture.act_funcs,
+                loss=loss
+            )
+            self.loss = loss
 
     @check_input
     def predict(
