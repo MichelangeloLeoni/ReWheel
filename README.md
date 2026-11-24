@@ -1,7 +1,8 @@
 # ReWheel
 
 A lightweight feedforward neural network simulator and toolkit.
-**_Because reinventing the wheel is fun!_**
+
+**Because reinventing the wheel is fun!**
 
 ---
 
@@ -12,10 +13,12 @@ ReWheel is a lightweight feedforward neural network simulator implemented from s
 - Fully connected feedforward neural networks.
 - Configurable network architectures and activation functions.
 - Forward and backward propagation.
+- Multiple loss functions: HMSE, Binary Cross-Entropy and Categorical Cross-Entropy.
 - Batch and mini-batch gradient descent.
 - Momentum and L2 regularization.
 - Configurable training, weight-update and stopping parameters.
 - Multiple stopping criteria, including validation-based early stopping.
+- Automatic validation of loss and output activation compatibility.
 - Training logs and model persistence.
 
 ## Installation
@@ -69,7 +72,15 @@ architecture = Architecture(
 )
 ```
 
-The `Architecture` class specifies the number of input features and the number of neurons and activation function for each layer.
+The `Architecture` class specifies the number of input features and the
+number of neurons and activation function of each layer.
+
+Supported activation functions are:
+
+- LINEAR
+- RELU
+- SIGMOID
+- SOFTMAX
 
 ### 2. Configure the network
 
@@ -91,7 +102,7 @@ Main parameters:
 
 | Parameter | Description |
 | --- | --- |
-| `bounds` | Interval used for weight initialization (the domain of a uniform distribution).|
+| `bounds` | Range of the uniform distribution used for weight initialization. |
 | `seed` | Random seed used for reproducibility. If omitted, a seed is generated automatically. |
 | `batch_size` | Number of samples used for each weight update. |
 
@@ -135,10 +146,10 @@ Available stopping criteria:
 | Parameter | Description |
 |---|---|
 | `epochs` | Maximum number of training epochs. |
-| `target_loss` | Stop when the training loss reaches the specified target. |
-| `min_delta_loss` | Stop when the variation in training loss remains below the specified threshold for a given number of consecutive epochs. |
-| `min_gradient_norm` | Stop when the gradient norm satisfies the specified threshold for a given number of consecutive epochs. |
-| `min_delta_valid_loss` | Stop when the validation loss variation remains below the specified threshold for a given number of consecutive epochs. |
+| `target_loss` | Stop when the training loss reaches or falls below the specified target. |
+| `min_delta_loss` | Stop when the absolute change in training loss between consecutive epochs remains below the specified threshold for a given number of consecutive epochs. |
+| `min_gradient_norm` | Stop when the gradient norm remains below the specified threshold for a given number of consecutive epochs. |
+| `min_delta_valid_loss` | Stop when the absolute change in validation loss between consecutive epochs remains below the specified threshold for a given number of consecutive epochs. |
 
 The tuple-based criteria use the following format:
 
@@ -153,6 +164,30 @@ Where:
 
 At least one stopping criterion must be specified.
 
+
+#### Loss functions
+
+ReWheel supports three loss functions:
+
+| Loss | Description |
+| --- | --- |
+| HMSE | Half Mean Squared Error, suitable for regression and general-purpose output layers. |
+| BCE | Binary Cross-Entropy, for binary classification. |
+| CCE | Categorical Cross-Entropy, for multiclass classification. |
+
+The loss function can be specified when configuring the network. If omitted, HMSE is used.
+
+The output activation function must be compatible with the selected loss:
+| Loss | Required output activation |
+| --- | --- |
+| HMSE | Any supported output activation except Softmax. |
+| BCE | Sigmoid. |
+| CCE | Softmax. |
+
+Loss names are case-insensitive.
+
+Incompatible combinations and unsupported loss functions raise a ValueError.
+
 #### Initialize and configure the network
 
 Once all parameters have been defined, initialize and configure the network:
@@ -165,7 +200,8 @@ nn = NeuralNetwork(
 nn.configure(
     training_params=training_parameters,
     update_params=update_parameters,
-    stopping_crit=stopping_criteria
+    stopping_crit=stopping_criteria,
+    loss='BCE'
 )
 ```
 
@@ -195,7 +231,7 @@ The input matrix has shape `(n_features, n_samples)`, while the target matrix ha
 Train the network by passing the input and target datasets to `train()`:
 
 ```python
-training_log = nn.train(
+nn.train(
     input_data=X,
     target_data=y
 )
@@ -203,7 +239,13 @@ training_log = nn.train(
 
 The training procedure automatically evaluates the configured stopping criteria and terminates when one of them is satisfied.
 
-The method returns a `TrainingLog` containing information about the training process, including:
+Once training is complete, the training log is available through the `training_log` attribute of the `NeuralNetwork` instance:
+
+```python
+training_log = nn.training_log
+```
+
+The `TrainingLog` object contains information about the training process, including:
 
 - Training loss.
 - Initial and final loss.

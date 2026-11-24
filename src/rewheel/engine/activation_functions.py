@@ -84,20 +84,8 @@ af_list = {
     "SIGMOID": sigmoid,
     "SIGMOID_DERIVATIVE": sigmoid_derivative,
 
-    "TANH": tanh,
-    "TANH_DERIVATIVE": tanh_derivative,
-
     "RELU": relu,
     "RELU_DERIVATIVE": relu_derivative,
-
-    "LEAKY_RELU": leaky_relu,
-    "LEAKY_RELU_DERIVATIVE": leaky_relu_derivative,
-
-    "ELU": elu,
-    "ELU_DERIVATIVE": elu_derivative,
-
-    "SOFTPLUS": softplus,
-    "SOFTPLUS_DERIVATIVE": softplus_derivative,
 
     "SOFTMAX": softmax,
     "SOFTMAX_DERIVATIVE": softmax_derivative,
