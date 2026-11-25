@@ -199,6 +199,10 @@ def evaluate(
     ValueError
         If target data does not satisfy the encoding requirements
         of the selected classification type.
+    
+    Notes
+    -----
+    Once the accuracy is computed it is printed in the console.
     """
     # Check if the input vectors type is np.ndarray
     if not isinstance(output_vector, np.ndarray):
@@ -306,5 +310,7 @@ def evaluate(
                 axis=0
             )
         )
+
+    print(f"{accuracy:.3f}%")
 
     return float(accuracy), confusion_matrix
