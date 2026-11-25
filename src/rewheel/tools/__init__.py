@@ -2,3 +2,4 @@
 
 from .save_n_load import save_model, load_model
 from .evaluate import evaluate
+from .plot import plot_loss, plot_confusion

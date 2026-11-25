@@ -20,6 +20,8 @@ ReWheel is a lightweight feedforward neural network simulator implemented from s
 - Multiple stopping criteria, including validation-based early stopping.
 - Automatic validation of loss and output activation compatibility.
 - Training logs and model persistence.
+- Model evaluation with classification metrics.
+- Visualization tools for training loss, validation loss and confusion matrices.
 
 ## Installation
 
