@@ -8,7 +8,12 @@ from .classes import (
     StoppingCriteria
 )
 from .propagation import forward_propagation
-from .utils import check_loss, check_input, initialize_weights
+from .utils import (
+    check_loss,
+    check_input,
+    initialize_weights,
+    check_matching_samples
+)
 from .training.trainer import Trainer
 
 class NeuralNetwork:
@@ -262,8 +267,12 @@ class NeuralNetwork:
         Raises
         ------
         ValueError
+            If input_vector and target_vector do not contain the
+            same number of examples.
+        ValueError
             If validation input data is provided without validation
             target data, or vice versa.
+        ValueError
             If validation-loss-based early stopping is enabled but
             either validation dataset is missing.
 
@@ -275,6 +284,12 @@ class NeuralNetwork:
         The training results are stored in the ``training_log``
         attribute.
         """
+        # Check target_vector type
+        if not isinstance(target_vector, np.ndarray):
+            target_vector = np.asarray(target_vector)
+        # Check if input_vector and target_vector cotain the same number of examples
+        check_matching_samples(input_vector, target_vector)
+
         # Check if both validation vectors are passed to the function
         if self.stopping_crit.min_delta_valid_loss is not None:
             if valid_input_vector is None or valid_target_vector is None:
@@ -284,9 +299,10 @@ class NeuralNetwork:
         # Check validation vectors type
         if valid_input_vector is not None and valid_target_vector is not None:
             if not isinstance(valid_input_vector, np.ndarray):
-                valid_input_vector = np.array(valid_input_vector)
+                valid_input_vector = np.asarray(valid_input_vector)
             if not isinstance(valid_target_vector, np.ndarray):
-                valid_target_vector = np.array(valid_target_vector)
+                valid_target_vector = np.asarray(valid_target_vector)
+            check_matching_samples(valid_input_vector, valid_target_vector)
 
         # Initialize Trainer instance
         tr = Trainer(

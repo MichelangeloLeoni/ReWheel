@@ -7,6 +7,58 @@ import numpy as np
 from .classes import Architecture
 from .loss import loss_functions
 
+def check_matching_features(
+        array_1: np.ndarray,
+        array_2: np.ndarray
+        ) -> None:
+    """
+    Check whether two arrays have the same number of features.
+
+    Parameters
+    ----------
+    array_1 : np.ndarray
+        First input array.
+    array_2 : np.ndarray
+        Second input array.
+
+    Raises
+    ------
+    ValueError
+        If the arrays have different numbers of features.
+    """
+
+    if array_1.shape[0] != array_2.shape[0]:
+        raise ValueError(
+            "Arrays must have the same number of features. "
+            f"Got {array_1.shape[0]} and {array_2.shape[0]}."
+        )
+
+def check_matching_samples(
+        array_1: np.ndarray,
+        array_2: np.ndarray
+        ) -> None:
+    """
+    Check whether two arrays have the same number of samples.
+
+    Parameters
+    ----------
+    array_1 : np.ndarray
+        First input array.
+    array_2 : np.ndarray
+        Second input array.
+
+    Raises
+    ------
+    ValueError
+        If the arrays have different numbers of samples.
+    """
+
+    if array_1.shape[1] != array_2.shape[1]:
+        raise ValueError(
+            "Arrays must have the same number of samples. "
+            f"Got {array_1.shape[1]} and {array_2.shape[1]}."
+        )
+
 def check_loss(
         act_funcs: list[str],
         loss: str
@@ -29,7 +81,6 @@ def check_loss(
         the output layer activation function.
     """
     loss = loss.upper()
-
     if loss not in loss_functions:
         raise ValueError(
             f"Loss function '{loss}' is not supported. "
@@ -37,17 +88,14 @@ def check_loss(
         )
 
     output_activation = act_funcs[-1].upper()
-
     if loss == 'HMSE' and output_activation == 'SOFTMAX':
         raise ValueError(
             "HMSE loss cannot be used with a Softmax output layer."
         )
-
     if loss == 'BCE' and output_activation != 'SIGMOID':
         raise ValueError(
             "BCE loss requires a Sigmoid output layer."
         )
-
     if loss == 'CCE' and output_activation != 'SOFTMAX':
         raise ValueError(
             "CCE loss requires a Softmax output layer."
@@ -86,7 +134,7 @@ def check_input(func: callable) -> callable:
         # Check if the input is a NumPy array,
         # if not attempt a conversion
         if not isinstance(input_vector, np.ndarray):
-            input_vector = np.array(input_vector)
+            input_vector = np.asarray(input_vector)
 
         # Check if input vector number of features matches input layer
         # number of units

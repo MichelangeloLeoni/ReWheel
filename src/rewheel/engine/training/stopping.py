@@ -144,7 +144,7 @@ class StoppingManager:
             threshold, patience = self.nn.stopping_crit.min_gradient_norm
 
             if len(self.gradient_norms) >= patience:
-                if np.all(np.array(self.gradient_norms[-patience:]) <= threshold):
+                if np.all(np.asarray(self.gradient_norms[-patience:]) <= threshold):
                     causes.append("Minimum_gradient_norm_reached")
 
         # Validation based early stopping
