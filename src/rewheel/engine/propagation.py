@@ -207,6 +207,8 @@ def update_weights(
         delta_w = alpha * delta_w_old + eta * (neg_w_grad - lambda * w)
         w_new = w + delta_w
     where `neg_w_grad` is the negative gradient passed in `weights_gradients`.
+
+    L2 regularization is not applied to bias weights.
     """
     weights_deltas = []
 
@@ -217,10 +219,14 @@ def update_weights(
             strict=True
             ):
         reg_term = update_params.lambda_ * weight
+        # Avoid to regularize bias weights
+        reg_term[:, -1] = 0
+
         weights_delta = (
             update_params.alpha * previous_delta
             + update_params.eta * (gradient - reg_term)
         )
+
         weight += weights_delta
         weights_deltas.append(weights_delta)
 
