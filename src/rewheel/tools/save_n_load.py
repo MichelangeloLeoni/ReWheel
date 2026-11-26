@@ -15,11 +15,11 @@ def save_model(
     Save a neural network model to disk.
 
     The model is saved in a dedicated directory containing NumPy
-    files with the network architecture, weight matrices and
-    available training configuration.
+    files with the network architecture, weight matrices, training
+    configuration and training history, when available.
 
-    If no model name is provided, a name based on the current
-    date and time is generated.
+    If no model name is provided, a name based on the current date
+    and time is generated.
 
     Parameters
     ----------
@@ -41,12 +41,17 @@ def save_model(
     -----
     The following files are saved:
 
-    - ``weights.npy``: network weight matrices.
-    - ``architecture.npy``: network architecture.
-    - ``training_parameters.npy``: training parameters, if available.
-    - ``update_parameters.npy``: weight update parameters, if available.
-    - ``stopping_criteria.npy``: stopping criteria, if available.
-    - ``training_log.npy``: training history, if available.
+    - ``weights.npy`` : Network weight matrices.
+    - ``architecture.npy`` : Network architecture.
+    - ``loss.npy`` : Loss function associated with the network.
+    - ``training_parameters.npy`` : Training parameters, if available.
+    - ``update_parameters.npy`` : Weight update parameters, if available.
+    - ``stopping_criteria.npy`` : Training stopping criteria, if available.
+    - ``training_log.npy`` : Training history, if available.
+
+    The training log contains information collected during training,
+    such as loss history, validation loss, stopping cause, best epoch,
+    random seed and training state.
     """
     # Generate model name if not provided
     if model_name is None:
@@ -69,6 +74,13 @@ def save_model(
     np.save(
         os.path.join(model_path, "architecture.npy"),
         nn.architecture,
+        allow_pickle=True
+    )
+
+    # Save training loss
+    np.save(
+        os.path.join(model_path, "loss.npy"),
+        nn.loss,
         allow_pickle=True
     )
 
@@ -112,9 +124,9 @@ def load_model(
     """
     Load a neural network model from disk.
 
-    The function restores the network architecture, weight matrices
-    and available training configuration, returning a new
-    NeuralNetwork instance.
+    The function restores a neural network from a previously saved
+    model directory, including its architecture, weight matrices,
+    loss function and available training configuration and history.
 
     Parameters
     ----------
@@ -125,17 +137,33 @@ def load_model(
     -------
     NeuralNetwork
         Restored neural network instance initialized with the
-        loaded architecture, weights and available parameters.
+        loaded architecture, weights, loss function and available
+        training information.
 
     Notes
     -----
     The following files are required:
 
-    - ``architecture.npy``: network architecture.
-    - ``weights.npy``: network weight matrices.
+    - ``architecture.npy`` : Network architecture.
+    - ``weights.npy`` : Network weight matrices.
+    - ``loss.npy`` : Loss function associated with the network.
 
-    Training, update and stopping parameters are restored only
-    if their corresponding files are present.
+    The following files are optional and are loaded only if present:
+
+    - ``training_parameters.npy`` : Training parameters.
+    - ``update_parameters.npy`` : Weight update parameters.
+    - ``stopping_criteria.npy`` : Training stopping criteria.
+    - ``training_log.npy`` : Training history.
+
+    The restored training log provides access to the information
+    collected during the original training process, including loss
+    history, validation loss, stopping cause, best epoch, random
+    seed and training state.
+
+    Notes
+    -----
+    Files are loaded using ``allow_pickle=True`` because the saved
+    objects include custom Python classes and object arrays.
     """
     # Load architecture
     architecture = np.load(
@@ -143,8 +171,17 @@ def load_model(
         allow_pickle=True
     ).item()
 
+    # Load training loss
+    loss = np.load(
+        os.path.join(model_path, "loss.npy"),
+        allow_pickle=True
+    ).item()
+
     # Initialize neural network
-    nn = NeuralNetwork(architecture=architecture)
+    nn = NeuralNetwork(
+        architecture=architecture,
+        loss=loss
+    )
 
     # Load weights
     nn.weights = np.load(
@@ -156,7 +193,8 @@ def load_model(
     parameter_files = {
         "training_params": "training_parameters.npy",
         "update_params": "update_parameters.npy",
-        "stopping_crit": "stopping_criteria.npy"
+        "stopping_crit": "stopping_criteria.npy",
+        "training_log": "training_log.npy"
     }
 
     # Restore available training configuration

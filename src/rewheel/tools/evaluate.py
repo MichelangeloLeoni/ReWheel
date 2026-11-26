@@ -311,6 +311,6 @@ def evaluate(
             )
         )
 
-    print(f"{accuracy:.3f}%")
+    print(f"{accuracy*100:.1f}%")
 
     return float(accuracy), confusion_matrix
