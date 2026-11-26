@@ -1,6 +1,6 @@
 [project]
 name = "ReWheel"
-version = "1.4.2"
+version = "1.5.0"
 description = "A lightweight neural network simulator and toolkit!"
 readme = "README.md"
 license = { file = "LICENSE" }
