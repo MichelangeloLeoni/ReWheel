@@ -2,9 +2,34 @@
 Module providing utilities to save and load neural network models.
 """
 import os
+from contextlib import redirect_stdout
 from datetime import datetime
 import numpy as np
 from ..engine.nn_sim import NeuralNetwork
+
+def _generate_metadata(
+        data: object,
+        model_path: str,
+        ) -> None:
+    """
+    Helper function that writes the string representation
+    of input data to a file.
+
+    Needed to generate a human-readable file that contains
+    neural network metadata.
+
+    Parameters
+    ----------
+    data : object
+        Any data to be string represented inside the file.
+    model_path : str
+        Name of the directory where the file will be saved.
+    """
+    file_path = os.path.join(model_path, "metadata.txt")
+    with open(file_path, "a", encoding="utf-8") as file:
+        with redirect_stdout(file):
+            print(data)
+            print()
 
 def save_model(
         nn: NeuralNetwork,
@@ -48,10 +73,16 @@ def save_model(
     - ``update_parameters.npy`` : Weight update parameters, if available.
     - ``stopping_criteria.npy`` : Training stopping criteria, if available.
     - ``training_log.npy`` : Training history, if available.
+    - ``metadata.txt`` : Human-readable representations of the
+      saved network architecture, loss function and available
+      training configuration and history.
 
     The training log contains information collected during training,
     such as loss history, validation loss, stopping cause, best epoch,
     random seed and training state.
+
+    Files are saved using NumPy's binary format, while the metadata
+    file provides a human-readable summary of the saved objects.
     """
     # Generate model name if not provided
     if model_name is None:
@@ -62,6 +93,11 @@ def save_model(
     # Create model directory
     model_path = os.path.join(models_dir, model_name)
     os.makedirs(model_path, exist_ok=True)
+
+    # Clear metadata file
+    metadata_path = os.path.join(model_path, "metadata.txt")
+    with open(metadata_path, "w", encoding="utf-8") as file:
+        pass
 
     # Save weights
     np.save(
@@ -76,6 +112,7 @@ def save_model(
         nn.architecture,
         allow_pickle=True
     )
+    _generate_metadata(data=nn.architecture, model_path=model_path)
 
     # Save training loss
     np.save(
@@ -83,6 +120,7 @@ def save_model(
         nn.loss,
         allow_pickle=True
     )
+    _generate_metadata(data=nn.loss, model_path=model_path)
 
     # Save training parameters
     if nn.training_params is not None:
@@ -91,6 +129,7 @@ def save_model(
             nn.training_params,
             allow_pickle=True
         )
+        _generate_metadata(data=nn.training_params, model_path=model_path)
 
     # Save update parameters
     if nn.update_params is not None:
@@ -99,6 +138,7 @@ def save_model(
             nn.update_params,
             allow_pickle=True
         )
+        _generate_metadata(data=nn.update_params, model_path=model_path)
 
     # Save stopping criteria
     if nn.stopping_crit is not None:
@@ -107,6 +147,7 @@ def save_model(
             nn.stopping_crit,
             allow_pickle=True
         )
+        _generate_metadata(data=nn.stopping_crit, model_path=model_path)
 
     # Save training log
     if nn.training_log is not None:
@@ -115,6 +156,7 @@ def save_model(
             nn.training_log,
             allow_pickle=True
         )
+        _generate_metadata(data=nn.training_log, model_path=model_path)
 
     return model_path
 
