@@ -116,8 +116,7 @@ Main parameters:
 update_parameters = UpdateParameters(
     eta=0.1,
     alpha=0.9,
-    lambda_=0.001,
-    full_independence=False
+    lambda_=0.001
 )
 ```
 
@@ -128,7 +127,6 @@ Main parameters:
 | `eta` | Learning rate. |
 | `alpha` | Momentum coefficient. |
 | `lambda_` | L2 regularization coefficient. |
-| `full_independence` | Controls the implementation of the weight-update rule. |
 
 #### Stopping criteria
 

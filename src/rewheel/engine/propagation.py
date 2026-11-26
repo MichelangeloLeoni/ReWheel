@@ -157,19 +157,15 @@ def update_weights(
         ) -> list[np.ndarray]:
     """
     Updates weights using gradient descent with L2 regularization
-    and momentum. 
+    and momentum.
 
-    Implements two different weights update algorithms:
-    one obtains full independence between the three terms while the
-    other absorbs the regularization term inside the weights delta.
-    
     Parameters
     ----------
     weights : list of np.ndarray
         List of weights matrices of the neural network.
     weights_gradients : list of np.ndarray
         List containing the negative weights gradient matrix of each layer.
-    previous_weights_deltas : listo of np.ndarray
+    previous_weights_deltas : list of np.ndarray
         List containing the weights deltas of the previous weights update
         iteration. Needed to apply momentum to the weight update.
     update_params : UpdateParameters
@@ -184,15 +180,11 @@ def update_weights(
 
     Notes
     -----
-    The weights update will be performed following:
-        delta_w = - eta * w_grad - lambda * w + alpha * delta_w_old
+    The weights update is performed following:
+        delta_w = alpha * delta_w_old + eta * (neg_w_grad - lambda * w)
         w_new = w + delta_w
-    if full_independence=False, or:
-        delta_w = - eta * w_grad + alpha * delta_w_old
-        w_new = w + delta_w - lambda * w
-    if full_independence=True.
+    where `neg_w_grad` is the negative gradient passed in `weights_gradients`.
     """
-    # Initialize weights delta list
     weights_deltas = []
 
     for weight, previous_delta, gradient in zip(
@@ -201,21 +193,12 @@ def update_weights(
             weights_gradients,
             strict=True
             ):
-
-        # Computes partial weights delta
+        reg_term = update_params.lambda_ * weight
         weights_delta = (
-            update_params.eta * gradient
-            + update_params.alpha * previous_delta
+            update_params.alpha * previous_delta
+            + update_params.eta * (gradient - reg_term)
         )
-
-        if update_params.full_independence:
-            # Fully independent weights update
-            weight += weights_delta - update_params.lambda_ * weight
-        else:
-            # Regularization term inside weights delta
-            weights_delta -= update_params.lambda_ * weight
-            weight += weights_delta
-
+        weight += weights_delta
         weights_deltas.append(weights_delta)
 
     return weights_deltas

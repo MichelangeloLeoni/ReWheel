@@ -200,7 +200,7 @@ def compute_gradient(
     np.ndarray
         Negative gradient of the weights matrix.
     """
-    return  (np.outer(delta, prev_layer_output)
+    return (np.outer(delta, prev_layer_output)
                 if is_single_example
                 else delta @ prev_layer_output.T / prev_layer_output.shape[1]
     )
