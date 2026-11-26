@@ -2,8 +2,10 @@
 from typing import TYPE_CHECKING
 from collections import deque
 from datetime import datetime
-import sys
 import numpy as np
+from rich.live import Live
+from rich.console import Group
+from rich.text import Text
 from ..classes import TrainingLog
 from ..utils import initialize_weights
 from .steps import propagate, update_weights, update_mini_batches
@@ -81,14 +83,9 @@ class Trainer:
         # Initialize progress logs buffer
         self._progress_logs = deque(maxlen=10)
 
-    def _progress(
-            self
-            ) -> None:
+    def _progress(self, live: Live) -> None:
         """
-        Displays the current training progress in the console.
-
-        Updates a single console line with the current epoch,
-        training loss, and validation loss (if available).
+        Displays the last 10 training progress updates in the console.
         """
         message = (
             f"Epoch {len(self.training_log.loss)}"
@@ -100,10 +97,10 @@ class Trainer:
                 else ""
             )
         )
-        self._progress_logs.append(message)
-        sys.stdout.write("\033[H")
-        sys.stdout.write("\n".join(self._progress_logs))
-        sys.stdout.flush()
+
+        self._progress_logs.append(Text(message))
+
+        live.update(Group(*self._progress_logs), refresh=True)
 
     def training_loop(
             self,
@@ -179,49 +176,53 @@ class Trainer:
         # Store training starting time in training_log
         self.training_log.training_start_stop = [datetime.now()]
 
-        # Loop until a stopping condition is met
-        while True:
-            # Propagate through the network
-            weights_gradients, loss = propagate(
-                nn=self.nn,
-                input_vector=input_vector,
-                target_vector=target_vector
-            )
+        with Live(
+            Group(),
+            refresh_per_second=10,
+            transient=False
+        ) as live:
 
-            # Evaluate the configured stopping criteria
-            st.check_stopping(
-                valid_input_vector=valid_input_vector,
-                valid_target_vector=valid_target_vector,
-                loss=loss,
-                weights_gradients=weights_gradients
-            )
-
-            self._progress()
-
-            # Stop training if a stopping condition is met
-            if self.training_log.stopping_cause:
-                print()
-                break
-
-            # Update the network weights
-            # Full-batch training
-            if self.nn.training_params.batch_size is None:
-                previous_weights_deltas = update_weights(
-                    weights=self.nn.weights,
-                    weights_gradients=weights_gradients,
-                    previous_weights_deltas=previous_weights_deltas,
-                    update_params=self.nn.update_params
-                )
-
-            # Mini-batch training
-            else:
-                previous_weights_deltas = update_mini_batches(
+            # Loop until a stopping condition is met
+            while True:
+                # Propagate through the network
+                weights_gradients, loss = propagate(
                     nn=self.nn,
-                    previous_weights_deltas=previous_weights_deltas,
                     input_vector=input_vector,
-                    target_vector=target_vector,
-                    seed=self.nn.training_params.seed
+                    target_vector=target_vector
                 )
+
+                # Evaluate stopping criteria
+                st.check_stopping(
+                    valid_input_vector=valid_input_vector,
+                    valid_target_vector=valid_target_vector,
+                    loss=loss,
+                    weights_gradients=weights_gradients
+                )
+
+                self._progress(live)
+
+                # Stop training if a stopping condition is met
+                if self.training_log.stopping_cause:
+                    break
+
+                # Full-batch training
+                if self.nn.training_params.batch_size is None:
+                    previous_weights_deltas = update_weights(
+                        weights=self.nn.weights,
+                        weights_gradients=weights_gradients,
+                        previous_weights_deltas=previous_weights_deltas,
+                        update_params=self.nn.update_params
+                    )
+
+                # Mini-batch training
+                else:
+                    previous_weights_deltas = update_mini_batches(
+                        nn=self.nn,
+                        previous_weights_deltas=previous_weights_deltas,
+                        input_vector=input_vector,
+                        target_vector=target_vector,
+                        seed=self.nn.training_params.seed
+                    )
 
         # Store training stopping time in training_log
         self.training_log.training_start_stop.append(datetime.now())

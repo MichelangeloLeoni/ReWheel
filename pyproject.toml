@@ -1,12 +1,13 @@
 [project]
 name = "ReWheel"
-version = "1.5.1"
+version = "1.6.0"
 description = "A lightweight neural network simulator and toolkit!"
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = [
     "numpy",
     "matplotlib",
+    "rich",
 ]
 
 [project.optional-dependencies]
