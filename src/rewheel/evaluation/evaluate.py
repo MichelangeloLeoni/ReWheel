@@ -1,10 +1,17 @@
 """Module containing functions used to evaluate neural network predictions."""
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import numpy as np
-from ..engine.nn_sim import NeuralNetwork
 from ..engine.utils import check_matching_samples, check_matching_features
 
+# NeuralNetwork is only imported during type checking and
+# ignored during runtime, preventing circular imports while
+# allowing type hinting
+if TYPE_CHECKING:
+    from ..engine.nn_sim import NeuralNetwork
+
 def _get_classification_type(
-        network: NeuralNetwork
+        network: "NeuralNetwork"
         ) -> str:
     """
     Determine the classification type from a neural network architecture.
@@ -141,7 +148,8 @@ def evaluate(
         output_vector: np.ndarray,
         target_vector: np.ndarray,
         threshold: float = 0.5,
-        network: NeuralNetwork | None = None
+        network: "NeuralNetwork" | None = None,
+        verbose: bool = True
         ) -> tuple[float, np.ndarray]:
     """
     Evaluate neural network predictions using classification accuracy.
@@ -204,6 +212,12 @@ def evaluate(
     -----
     Once the accuracy is computed it is printed in the console.
     """
+    output_vector = (
+        output_vector[-1]
+        if isinstance(output_vector, (list, tuple))
+        else output_vector
+    )
+
     # Check if the input vectors type is np.ndarray
     if not isinstance(output_vector, np.ndarray):
         output_vector = np.asarray(output_vector)
@@ -311,6 +325,7 @@ def evaluate(
             )
         )
 
-    print(f"{accuracy*100:.1f}%")
+    if verbose:
+        print(f"{accuracy*100:.1f}%")
 
     return float(accuracy), confusion_matrix
