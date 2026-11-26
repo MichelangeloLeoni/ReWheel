@@ -178,22 +178,25 @@ def evaluate(
         Neural network used to determine the classification type.
         If None, the classification type is inferred from the
         target data.
+    verbose : bool, default=True
+        If True, print the computed accuracy as a percentage to the
+        console.
 
     Returns
     -------
     tuple[float, np.ndarray]
         A tuple containing:
         - accuracy : float
-            Classification accuracy. For binary and multiclass
-            classification, this is the fraction of correctly
-            classified samples. For multilabel classification,
-            a sample is considered correct only if all its labels
-            are predicted correctly.
+                    Classification accuracy. For binary and multiclass
+                    classification, this is the fraction of correctly
+                    classified samples. For multilabel classification,
+                    a sample is considered correct only if all its labels
+                    are predicted correctly.
         - confusion_matrix : np.ndarray
-            Confusion matrix. For binary and multiclass classification,
-            has shape (n_classes, n_classes). For multilabel
-            classification, has shape (n_features, 2, 2), containing
-            one confusion matrix for each label.
+                    Confusion matrix. For binary and multiclass classification,
+                    has shape (n_classes, n_classes). For multilabel
+                    classification, has shape (n_features, 2, 2), containing
+                    one confusion matrix for each label.
 
     Raises
     ------
@@ -207,10 +210,11 @@ def evaluate(
     ValueError
         If target data does not satisfy the encoding requirements
         of the selected classification type.
-    
+
     Notes
     -----
-    Once the accuracy is computed it is printed in the console.
+    When `verbose` is True, the accuracy is printed to the console
+    as a percentage formatted to one decimal place.
     """
     output_vector = (
         output_vector[-1]
