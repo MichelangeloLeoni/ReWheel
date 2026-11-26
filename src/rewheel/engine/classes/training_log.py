@@ -70,15 +70,19 @@ class TrainingLog:
 
         if self.training_start_stop is not None:
             training_start, training_stop = self.training_start_stop
-            elapsed_time = (
+            elapsed_seconds = (
                 training_stop - training_start
             ).total_seconds()
+
+            hours, remainder = divmod(int(elapsed_seconds), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            elapsed_time = f"{hours:02d}h:{minutes:02d}m:{seconds:02d}s"
 
         stdout = [
             "TrainingLog(",
             f"    seed={self.seed},",
             f"    elapsed_epoch={elapsed_epoch},",
-            f"    elapsed_time={elapsed_time:.3f}s,"
+            f"    elapsed_time={elapsed_time},"
             if elapsed_time is not None
             else "    elapsed_time=None,",
             f"    training_start={training_start},",
