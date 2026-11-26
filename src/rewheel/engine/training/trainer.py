@@ -1,5 +1,6 @@
 """Module containing the class responsible for training the neural network."""
 from typing import TYPE_CHECKING
+from collections import deque
 from datetime import datetime
 import sys
 import numpy as np
@@ -36,6 +37,8 @@ class Trainer:
     training_log : TrainingLog
         Log containing training metrics, validation metrics (if enabled),
         initialization information, and stopping information.
+    _progress_logs : deque
+        Buffer retaining the ten most recent training progress messages.
     """
 
     def __init__(
@@ -46,8 +49,7 @@ class Trainer:
         Initializes the Trainer and prepares the neural network for training.
 
         Initializes the network weights according to its architecture
-        and training parameters, then creates a TrainingLog instance
-        to record the training process.
+        and training parameters.
 
         Parameters
         ----------
@@ -76,6 +78,9 @@ class Trainer:
             )
         )
 
+        # Initialize progress logs buffer
+        self._progress_logs = deque(maxlen=10)
+
     def _progress(
             self
             ) -> None:
@@ -95,7 +100,9 @@ class Trainer:
                 else ""
             )
         )
-        sys.stdout.write("\r" + message + "\033[K")
+        self._progress_logs.append(message)
+        sys.stdout.write("\033[H")
+        sys.stdout.write("\n".join(self._progress_logs))
         sys.stdout.flush()
 
     def training_loop(
