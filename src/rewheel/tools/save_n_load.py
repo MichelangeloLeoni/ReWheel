@@ -96,7 +96,7 @@ def save_model(
 
     # Clear metadata file
     metadata_path = os.path.join(model_path, "metadata.txt")
-    with open(metadata_path, "w", encoding="utf-8") as file:
+    with open(metadata_path, "w", encoding="utf-8"):
         pass
 
     # Save weights
