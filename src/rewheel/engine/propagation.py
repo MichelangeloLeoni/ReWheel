@@ -2,11 +2,15 @@
 Module containing the functions to perform forward/backward propagation
 and weights update in a neural network.
 """
+import warnings
 import numpy as np
 from . import activation_functions as af
 from .delta import compute_delta
 from .utils import add_bias, compute_gradient
 from .classes import UpdateParameters, ForwardResults
+
+# Consider warnings as errors to raise exceptions during propagation
+warnings.filterwarnings("error")
 
 def forward_propagation(
         weights: list[np.ndarray],
@@ -41,6 +45,14 @@ def forward_propagation(
             - computed_nets : list of np.ndarray
                 Net inputs of each layer, computed before applying
                 the corresponding activation function.
+
+    Raises
+    ------
+    RuntimeError
+        If numerical overflow is detected during forward propagation.
+        This may occur when computed net values or layer activations
+        exceed the numerically representable range, for example due
+        to excessively large weights or an overly high learning rate.
     """
     # Initialize ForwardResults instance
     num_layers = len(weights)
@@ -55,24 +67,35 @@ def forward_propagation(
     is_single_example = input_vector.ndim == 1
     results.output_vectors[0] = add_bias(input_vector, is_single_example)
 
-    # Start propagating through layers
-    for i, layer_weights in enumerate(weights):
-        # Compute net of the whole layer
-        net = layer_weights @ results.output_vectors[i]
-        # Store the net of the layer
-        results.computed_nets[i] = net
+    try:
+        # Start propagating through layers
+        for i, layer_weights in enumerate(weights):
+            # Compute net of the whole layer
+            net = layer_weights @ results.output_vectors[i]
+            # Store the net of the layer
+            results.computed_nets[i] = net
 
-        # Apply activation function
-        layer_output = af.af_list[act_funcs[i]](net)
+            # Apply activation function
+            layer_output = af.af_list[act_funcs[i]](net)
 
-        # Compute the output to be passed as input onto the next layer
-        if i < num_layers-1:
-            # The next layer input will be the biased version of the current layer output
-            results.output_vectors[i+1] = add_bias(layer_output, is_single_example)
-        else:
-            # When we arrive at the output layer we save the output without adding a bias
-            # This represents the neural network final prediction
-            results.output_vectors[i+1] = layer_output
+            # Compute the output to be passed as input onto the next layer
+            if i < num_layers-1:
+                # The next layer input will be the biased version of the current layer output
+                results.output_vectors[i+1] = add_bias(layer_output, is_single_example)
+            else:
+                # When we arrive at the output layer we save the output without adding a bias
+                # This represents the neural network final prediction
+                results.output_vectors[i+1] = layer_output
+    except RuntimeWarning as exc:
+        raise RuntimeError(
+            "Numerical overflow detected during forward propagation. \n"
+            "The computed net values or layer activations exceeded "
+            "the numerically representable range. \n"
+            "This may be caused by excessively large weights or an "
+            "overly high learning rate. \n"
+            "Consider reducing the learning rate (eta) or adjusting the weight "
+            "initialization and update parameters."
+        ) from exc
 
     return results
 
