@@ -7,6 +7,7 @@ def plot_loss(
         loss: list[float],
         valid_loss: list[float] | None = None,
         file_path: str | None = None,
+        log_scale: bool = False,
         **kwargs
         ) -> None:
     """
@@ -16,12 +17,14 @@ def plot_loss(
     ----------
     loss : list of float
         Training loss values, one for each epoch.
-    valid_loss : list of float or None, optional
+    valid_loss : list of float or None, default=None
         Validation loss values, one for each epoch.
         If None, only the training loss is plotted.
-    file_path : str or None, optional
+    file_path : str or None, default=None
         Path where the plot should be saved.
         If None, the plot is displayed instead.
+    log_scale : bool, default=False
+        If True set the plot y-axis scale to logarithmic.
     **kwargs
         Additional keyword arguments for plot customization:
         - figsize : tuple of float, optional
@@ -55,6 +58,9 @@ def plot_loss(
     ax.set_xlabel("Epoch")
     ax.set_ylabel("Loss")
 
+    if log_scale:
+        ax.set_yscale("log")
+
     ax.grid(visible=show_grid, linestyle=linestyle, alpha=0.5)
     ax.legend()
 
@@ -80,7 +86,7 @@ def plot_confusion(
         Confusion matrix. Can be either:
         - A 2D square array representing a standard confusion matrix.
         - A 3D array containing one 2x2 confusion matrix per class.
-    file_path : str or None, optional
+    file_path : str or None, default=None
         Path where the plot should be saved.
         If None, the plot is displayed instead.
     **kwargs
