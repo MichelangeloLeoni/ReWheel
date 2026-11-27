@@ -16,6 +16,7 @@ from .utils import (
 )
 from .training.trainer import Trainer
 from .evaluation.utils import check_metrics
+from .evaluation import compute_metrics
 
 class NeuralNetwork:
     """
@@ -333,4 +334,77 @@ class NeuralNetwork:
             target_vector=target_vector,
             valid_input_vector=valid_input_vector,
             valid_target_vector=valid_target_vector
+        )
+
+    @check_input
+    def evaluate(
+            self,
+            input_vector: np.ndarray,
+            target_vector: np.ndarray,
+            metrics: tuple[str, ...] = (),
+            threshold: float = 0.5
+            ) -> dict[str, float]:
+        """
+        Evaluate the neural network on a given dataset.
+
+        Computes the requested evaluation metrics using the network
+        predictions and the provided target values.
+
+        Parameters
+        ----------
+        input_vector : np.ndarray
+            Input data, with features arranged in rows and
+            examples arranged in columns.
+        target_vector : np.ndarray
+            Target values, with output features arranged in rows
+            and examples arranged in columns.
+        metrics : tuple of str, default=()
+            Evaluation metrics to compute.
+        threshold : float, default=0.5
+            Classification threshold used by binary classification
+            metrics.
+
+        Returns
+        -------
+        dict[str, float]
+            Dictionary containing the requested evaluation metrics.
+
+        Raises
+        ------
+        ValueError
+            If input_vector and target_vector do not contain the
+            same number of examples, or if the requested metrics
+            are unsupported or incompatible with the network.
+        """
+        # Check target vector type
+        if not isinstance(target_vector, np.ndarray):
+            target_vector = np.asarray(target_vector)
+
+        # Check matching number of samples
+        check_matching_samples(input_vector, target_vector)
+
+        # Normalize metrics input
+        if isinstance(metrics, str):
+            metrics = (metrics,)
+        else:
+            metrics = tuple(metrics)
+
+        # Validate requested metrics
+        check_metrics(
+            metrics=metrics,
+            network=self
+        )
+
+        # Compute network predictions
+        prediction = self.predict(
+            input_vector=input_vector
+        )
+
+        # Compute requested metrics
+        return compute_metrics(
+            output_vector=prediction,
+            target_vector=target_vector,
+            metrics=metrics,
+            threshold=threshold,
+            network=self
         )
