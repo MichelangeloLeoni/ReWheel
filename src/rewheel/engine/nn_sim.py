@@ -235,7 +235,8 @@ class NeuralNetwork:
             input_vector: np.ndarray,
             target_vector: np.ndarray,
             valid_input_vector: np.ndarray | None = None,
-            valid_target_vector: np.ndarray | None = None
+            valid_target_vector: np.ndarray | None = None,
+            accuracy: bool = True
             ) -> None:
         """
         Train the neural network using the provided dataset.
@@ -306,7 +307,8 @@ class NeuralNetwork:
 
         # Initialize Trainer instance
         tr = Trainer(
-            neural_network=self
+            neural_network=self,
+            accuracy=accuracy
         )
 
         # Start training loop

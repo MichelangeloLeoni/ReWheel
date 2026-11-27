@@ -10,6 +10,7 @@ from ..classes import TrainingLog
 from ..utils import initialize_weights
 from .steps import propagate, update_weights, update_mini_batches
 from .stopping import StoppingManager
+from ..classes import Metrics
 
 # NeuralNetwork is only imported during type checking and
 # ignored during runtime, preventing circular imports while
@@ -45,7 +46,8 @@ class Trainer:
 
     def __init__(
             self,
-            neural_network: "NeuralNetwork"
+            neural_network: "NeuralNetwork",
+            accuracy: bool = False
             ):
         """
         Initializes the Trainer and prepares the neural network for training.
@@ -59,6 +61,7 @@ class Trainer:
             Neural network to be trained.
         """
         self.nn = neural_network
+        self.accuracy = accuracy
 
         # Initialize weights matrices
         seed = initialize_weights(
@@ -70,36 +73,57 @@ class Trainer:
 
         # Initialize TrainingLog instance
         self.training_log = TrainingLog(
+            metrics= Metrics(
+                loss=[],
+                validation_loss=(
+                    []
+                    if (self.nn.stopping_crit.min_delta_valid_loss is not None)
+                    else None
+                ),
+                accuracy=(
+                    []
+                    if (self.accuracy)
+                    else None
+                ),
+                validation_accuracy=(
+                    []
+                    if (self.nn.stopping_crit.min_delta_valid_loss is not None and self.accuracy)
+                    else None
+                ),
+            ),
             seed=seed,
-            loss=[],
-            stopping_cause=[],
-            validation_loss=(
-                []
-                if (self.nn.stopping_crit.min_delta_valid_loss is not None)
-                else None
-            )
+            stopping_cause=[]
         )
 
         # Initialize progress logs buffer
         self._progress_logs = deque(maxlen=10)
 
     def _progress(self, live: Live) -> None:
-        """
-        Displays the last 10 training progress updates in the console.
-        """
+        """Display the last 10 training progress updates."""
+
+        metrics = self.training_log.metrics
+
         message = (
-            f"Epoch {len(self.training_log.loss)}"
-            f", loss: {self.training_log.loss[-1]:.5g}"
-            + (
-                f", validation loss: "
-                f"{self.training_log.validation_loss[-1]:.5g}"
-                if self.training_log.validation_loss is not None
-                else ""
-            )
+            f"Epoch {len(metrics.loss)}"
+            f", loss: {metrics.loss[-1]:.5g}"
         )
 
-        self._progress_logs.append(Text(message))
+        if metrics.accuracy:
+            message += f", accuracy: {metrics.accuracy[-1]:.3g}"
 
+        if metrics.validation_loss:
+            message += (
+                f", validation loss: "
+                f"{metrics.validation_loss[-1]:.5g}"
+            )
+
+        if metrics.validation_accuracy:
+            message += (
+                f", validation accuracy: "
+                f"{metrics.validation_accuracy[-1]:.3g}"
+            )
+
+        self._progress_logs.append(Text(message))
         live.update(Group(*self._progress_logs), refresh=True)
 
     def training_loop(
@@ -185,18 +209,22 @@ class Trainer:
             # Loop until a stopping condition is met
             while True:
                 # Propagate through the network
-                weights_gradients, loss = propagate(
+                weights_gradients, loss, acc = propagate(
                     nn=self.nn,
                     input_vector=input_vector,
-                    target_vector=target_vector
+                    target_vector=target_vector,
+                    accuracy=self.accuracy
                 )
+                if self.accuracy:
+                    self.training_log.metrics.accuracy.append(acc)
 
                 # Evaluate stopping criteria
                 st.check_stopping(
                     valid_input_vector=valid_input_vector,
                     valid_target_vector=valid_target_vector,
                     loss=loss,
-                    weights_gradients=weights_gradients
+                    weights_gradients=weights_gradients,
+                    accuracy=self.accuracy
                 )
 
                 self._progress(live)

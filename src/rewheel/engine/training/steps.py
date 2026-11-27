@@ -11,6 +11,7 @@ from ..propagation import (
 )
 from ..loss import compute_loss
 from ..delta import compute_output_delta
+from ...evaluation.evaluate import evaluate
 
 # NeuralNetwork is only imported during type checking and
 # ignored during runtime, preventing circular imports while
@@ -21,7 +22,8 @@ if TYPE_CHECKING:
 def propagate(
         nn: "NeuralNetwork",
         input_vector: np.ndarray,
-        target_vector: np.ndarray
+        target_vector: np.ndarray,
+        accuracy: bool = False
         ) -> tuple[list[np.ndarray], float]:
     """
     Performs forward and backward propagation on a set of training samples.
@@ -75,12 +77,22 @@ def propagate(
         loss_function=nn.loss
     )
 
-    return weights_gradients, loss
+    acc = None
+    if accuracy:
+        acc, _ = evaluate(
+            output_vector=results.output_vectors,
+            target_vector=target_vector,
+            network=nn,
+            verbose=False
+        )
+
+    return weights_gradients, loss, acc
 
 def propagate_valid(
         nn: "NeuralNetwork",
         input_vector: np.ndarray,
-        target_vector: np.ndarray
+        target_vector: np.ndarray,
+        accuracy: bool = False
         ) -> float:
     """
     Computes the loss over a set of validation samples.
@@ -115,7 +127,16 @@ def propagate_valid(
         loss_function=nn.loss
     )
 
-    return loss
+    acc = None
+    if accuracy:
+        acc, _ = evaluate(
+            output_vector=results.output_vectors,
+            target_vector=target_vector,
+            network=nn,
+            verbose=False
+        )
+
+    return loss, acc
 
 def update_mini_batches(
         nn: "NeuralNetwork",
