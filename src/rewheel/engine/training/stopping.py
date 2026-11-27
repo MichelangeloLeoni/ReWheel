@@ -2,7 +2,7 @@
 """Module for managing neural network training stopping criteria."""
 from typing import TYPE_CHECKING
 import numpy as np
-from ..classes import TrainingLog
+from ..classes import TrainingLog, Metrics
 from ..utils import compute_gradient_norm
 from .steps import propagate_valid
 
@@ -55,6 +55,7 @@ class StoppingManager:
             ):
         self.nn = nn
         self.training_log = training_log
+        self.training_loss = nn.loss
 
         # Initialize stopping criteria states attributes
         self.gradient_norms = []
@@ -78,15 +79,16 @@ class StoppingManager:
         and the corresponding epoch is stored in the training log.
         """
         min_delta, _ = self.nn.stopping_crit.min_delta_valid_loss
+        loss =  self.training_log.metrics.validation[self.training_loss]
 
-        if self.training_log.metrics.validation_loss[-1] < self.best_validation_loss - min_delta:
-            self.best_validation_loss = self.training_log.metrics.validation_loss[-1]
+        if loss[-1] < self.best_validation_loss - min_delta:
+            self.best_validation_loss = loss[-1]
             self.epochs_no_improv = 0
 
             self.best_weights = [
                 w.copy() for w in self.nn.weights
             ]
-            self.best_epoch = len(self.training_log.metrics.validation_loss)
+            self.best_epoch = len(loss)
             self.training_log.best_epoch = self.best_epoch
         else:
             self.epochs_no_improv += 1
@@ -114,18 +116,19 @@ class StoppingManager:
             An empty list indicates that no stopping criterion was met.
         """
         causes = []
+        loss = self.training_log.metrics.training[self.training_loss]
 
         # Maximum number of epochs
         if (
             self.nn.stopping_crit.epochs is not None
-            and len(self.training_log.metrics.loss) >= self.nn.stopping_crit.epochs
+            and len(loss) >= self.nn.stopping_crit.epochs
         ):
             causes.append("Maximum_epochs_reached")
 
         # Target loss
         if (
             self.nn.stopping_crit.target_loss is not None
-            and self.training_log.metrics.loss[-1] <= self.nn.stopping_crit.target_loss
+            and loss[-1] <= self.nn.stopping_crit.target_loss
         ):
             causes.append("Target_loss_reached")
 
@@ -133,8 +136,8 @@ class StoppingManager:
         if self.nn.stopping_crit.min_delta_loss is not None:
             threshold, patience = self.nn.stopping_crit.min_delta_loss
 
-            if len(self.training_log.metrics.loss) >= patience + 1:
-                delta_loss = np.abs(np.diff(self.training_log.metrics.loss[-(patience + 1):]))
+            if len(loss) >= patience + 1:
+                delta_loss = np.abs(np.diff(loss[-(patience + 1):]))
 
                 if np.all(delta_loss <= threshold):
                     causes.append("Minimum_loss_variation_reached")
@@ -172,11 +175,7 @@ class StoppingManager:
 
     def check_stopping(
             self,
-            valid_input_vector: np.ndarray,
-            valid_target_vector: np.ndarray,
-            loss: float,
-            weights_gradients: list[np.ndarray],
-            accuracy: bool = False
+            weights_gradients: list[np.ndarray]
             ) -> None:
         """
         Updates training metrics and checks whether training should stop.
@@ -202,18 +201,7 @@ class StoppingManager:
         weights_gradients : list[np.ndarray]
             Weight gradient matrices computed during the current epoch.
         """
-        self.training_log.metrics.loss.append(loss)
-
         if self.nn.stopping_crit.min_delta_valid_loss is not None:
-            valid_loss, acc = propagate_valid(
-                nn=self.nn,
-                input_vector=valid_input_vector,
-                target_vector=valid_target_vector,
-                accuracy=accuracy
-            )
-            self.training_log.metrics.validation_loss.append(valid_loss)
-            if accuracy:
-                self.training_log.metrics.validation_accuracy.append(acc)
             self.update_early_stopping()
 
         if self.nn.stopping_crit.min_gradient_norm is not None:

@@ -9,9 +9,8 @@ from ..propagation import (
     backward_propagation,
     update_weights
 )
-from ..loss import compute_loss
 from ..delta import compute_output_delta
-from ...evaluation.evaluate import evaluate
+from ..evaluation.compute_metrics import compute_metrics
 
 # NeuralNetwork is only imported during type checking and
 # ignored during runtime, preventing circular imports while
@@ -23,7 +22,7 @@ def propagate(
         nn: "NeuralNetwork",
         input_vector: np.ndarray,
         target_vector: np.ndarray,
-        accuracy: bool = False
+        metrics
         ) -> tuple[list[np.ndarray], float]:
     """
     Performs forward and backward propagation on a set of training samples.
@@ -71,28 +70,21 @@ def propagate(
         act_funcs=nn.architecture.act_funcs,
         output_delta=output_delta
     )
-    loss = compute_loss(
-        output_vectors=results.output_vectors,
+    computed_metrics = compute_metrics(
+        output_vector=results.output_vectors,
         target_vector=target_vector,
-        loss_function=nn.loss
+        metrics=metrics,
+        threshold=0.5,
+        network=nn
     )
 
-    acc = None
-    if accuracy:
-        acc, _ = evaluate(
-            output_vector=results.output_vectors,
-            target_vector=target_vector,
-            network=nn,
-            verbose=False
-        )
-
-    return weights_gradients, loss, acc
+    return weights_gradients, computed_metrics
 
 def propagate_valid(
         nn: "NeuralNetwork",
         input_vector: np.ndarray,
         target_vector: np.ndarray,
-        accuracy: bool = False
+        metrics
         ) -> float:
     """
     Computes the loss over a set of validation samples.
@@ -121,22 +113,15 @@ def propagate_valid(
         act_funcs=nn.architecture.act_funcs,
         input_vector=input_vector
     )
-    loss = compute_loss(
-        output_vectors=results.output_vectors,
+    computed_metrics = compute_metrics(
+        output_vector=results.output_vectors,
         target_vector=target_vector,
-        loss_function=nn.loss
+        metrics=metrics,
+        threshold=0.5,
+        network=nn
     )
 
-    acc = None
-    if accuracy:
-        acc, _ = evaluate(
-            output_vector=results.output_vectors,
-            target_vector=target_vector,
-            network=nn,
-            verbose=False
-        )
-
-    return loss, acc
+    return computed_metrics
 
 def update_mini_batches(
         nn: "NeuralNetwork",

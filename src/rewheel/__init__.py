@@ -9,5 +9,3 @@ from .engine import (
 )
 
 from . import tools
-
-from .evaluation import evaluate

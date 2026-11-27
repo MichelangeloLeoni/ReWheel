@@ -9,12 +9,13 @@ from .classes import (
 )
 from .propagation import forward_propagation
 from .utils import (
-    check_loss,
     check_input,
     initialize_weights,
-    check_matching_samples
+    check_matching_samples,
+    check_loss
 )
 from .training.trainer import Trainer
+from .evaluation.utils import check_metrics
 
 class NeuralNetwork:
     """
@@ -185,7 +186,7 @@ class NeuralNetwork:
                 act_funcs=self.architecture.act_funcs,
                 loss=loss
             )
-            self.loss = loss
+            self.loss = loss.upper()
 
     @check_input
     def predict(
@@ -234,9 +235,9 @@ class NeuralNetwork:
             self,
             input_vector: np.ndarray,
             target_vector: np.ndarray,
+            metrics: tuple[str, ...] = (),
             valid_input_vector: np.ndarray | None = None,
-            valid_target_vector: np.ndarray | None = None,
-            accuracy: bool = True
+            valid_target_vector: np.ndarray | None = None
             ) -> None:
         """
         Train the neural network using the provided dataset.
@@ -305,10 +306,25 @@ class NeuralNetwork:
                 valid_target_vector = np.asarray(valid_target_vector)
             check_matching_samples(valid_input_vector, valid_target_vector)
 
+        # Normalize metrics input
+        if isinstance(metrics, str):
+            metrics = (metrics,)
+        else:
+            metrics = tuple(metrics)
+
+        # Check requested metrics
+        check_metrics(
+            metrics=metrics,
+            network=self
+        )
+
+        # Always include the training loss
+        metrics = tuple(dict.fromkeys((*metrics, self.loss)))
+
         # Initialize Trainer instance
         tr = Trainer(
             neural_network=self,
-            accuracy=accuracy
+            metrics=metrics
         )
 
         # Start training loop

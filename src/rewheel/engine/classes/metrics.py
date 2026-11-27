@@ -3,20 +3,17 @@ from dataclasses import dataclass
 
 @dataclass
 class Metrics:
-    """Container for storing training and validation metrics.
+    """Stores training and validation metrics."""
+    training: dict[str, list] | None = None
+    validation: dict[str, list] | None = None
 
-    Attributes
-    ----------
-    loss : list of float or None, default=None
-        List containing the loss values recorded during training.
-    accuracy : list of float or None, default=None
-        List containing the accuracy values recorded during training.
-    validation_loss : list of float or None, default=None
-        List containing the loss values recorded on the validation set.
-    validation_accuracy : list of float or None, default=None
-        List containing the accuracy values recorded on the validation set.
-    """
-    loss: list[float] | None = None
-    accuracy: list[float] | None = None
-    validation_loss: list[float] | None = None
-    validation_accuracy: list[float] | None = None
+    def record(
+            self,
+            computed_metrics: dict,
+            validation: bool = False
+            ) -> None:
+
+        dataset = self.validation if validation else self.training
+
+        for name, value in computed_metrics.items():
+            dataset.setdefault(name, []).append(value)

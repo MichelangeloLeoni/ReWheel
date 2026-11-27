@@ -1,3 +1,3 @@
 """Evaluation faunctions for the neural network simulator."""
 
-from .evaluate import evaluate
+from .compute_metrics import compute_metrics

@@ -1,38 +1,6 @@
-"""Module containing functions to compute errors and losses."""
+"""Module containing functions to compute loss."""
 import numpy as np
-
-def compute_error(
-        output_vectors: list[np.ndarray],
-        target_vector: np.ndarray
-        ) -> np.ndarray:
-    """
-    Compute the residual error of a neural network prediction.
-
-    The residual error is defined as the difference between the
-    target vector and the predicted output.
-
-    Parameters
-    ----------
-    output_vectors : list of np.ndarray or np.ndarray
-        Output vector of each layer in the neural network.
-        If a list or tuple is provided, the last element is used
-        as the final prediction. A single output array can also
-        be provided directly.
-    target_vector : np.ndarray
-        Target vector containing the expected output values.
-
-    Returns
-    -------
-    np.ndarray
-        Residual error.
-    """
-    prediction = (
-        output_vectors[-1]
-        if isinstance(output_vectors, (list, tuple))
-        else output_vectors
-    )
-
-    return target_vector - prediction
+from ..error import compute_error
 
 def compute_hmse(
         output_vectors: list[np.ndarray],
@@ -158,44 +126,3 @@ def compute_categorical_cross_entropy(
     )
 
     return float(loss)
-
-loss_functions = {
-    "HMSE": compute_hmse,
-    "BCE": compute_binary_cross_entropy,
-    "CCE": compute_categorical_cross_entropy
-}
-
-def compute_loss(
-        output_vectors: list[np.ndarray],
-        target_vector: np.ndarray,
-        loss_function: str = "HMSE"
-        ) -> float:
-    """
-    Compute the loss associated with a neural network prediction.
-
-    Parameters
-    ----------
-    output_vectors : list of np.ndarray
-        Output vector of each layer in the neural network.
-        The last element represents the final prediction.
-    target_vector : np.ndarray
-        Target vectors containing the expected output values.
-    loss_function : str, default="HMSE"
-        Identifier of the loss function to use.
-
-    Returns
-    -------
-    float
-        Loss value computed using the selected loss function.
-
-    Notes
-    -----
-    The available loss functions are stored in the
-    ``loss_functions`` dictionary.
-    """
-    function = loss_functions[loss_function]
-
-    return function(
-        output_vectors=output_vectors,
-        target_vector=target_vector
-        )

@@ -8,7 +8,12 @@ from rich.console import Group
 from rich.text import Text
 from ..classes import TrainingLog
 from ..utils import initialize_weights
-from .steps import propagate, update_weights, update_mini_batches
+from .steps import (
+    propagate,
+    propagate_valid,
+    update_weights,
+    update_mini_batches
+)
 from .stopping import StoppingManager
 from ..classes import Metrics
 
@@ -47,7 +52,7 @@ class Trainer:
     def __init__(
             self,
             neural_network: "NeuralNetwork",
-            accuracy: bool = False
+            metrics: tuple[str, ...]
             ):
         """
         Initializes the Trainer and prepares the neural network for training.
@@ -61,7 +66,7 @@ class Trainer:
             Neural network to be trained.
         """
         self.nn = neural_network
-        self.accuracy = accuracy
+        self.metrics = metrics
 
         # Initialize weights matrices
         seed = initialize_weights(
@@ -73,23 +78,13 @@ class Trainer:
 
         # Initialize TrainingLog instance
         self.training_log = TrainingLog(
-            metrics= Metrics(
-                loss=[],
-                validation_loss=(
-                    []
-                    if (self.nn.stopping_crit.min_delta_valid_loss is not None)
+            metrics=Metrics(
+                training={},
+                validation=(
+                    {}
+                    if self.nn.stopping_crit.min_delta_valid_loss is not None
                     else None
-                ),
-                accuracy=(
-                    []
-                    if (self.accuracy)
-                    else None
-                ),
-                validation_accuracy=(
-                    []
-                    if (self.nn.stopping_crit.min_delta_valid_loss is not None and self.accuracy)
-                    else None
-                ),
+                )
             ),
             seed=seed,
             stopping_cause=[]
@@ -103,25 +98,18 @@ class Trainer:
 
         metrics = self.training_log.metrics
 
-        message = (
-            f"Epoch {len(metrics.loss)}"
-            f", loss: {metrics.loss[-1]:.5g}"
+        epoch = len(
+            next(iter(metrics.training.values()))
         )
 
-        if metrics.accuracy:
-            message += f", accuracy: {metrics.accuracy[-1]:.3g}"
+        message = f"Epoch {epoch}"
 
-        if metrics.validation_loss:
-            message += (
-                f", validation loss: "
-                f"{metrics.validation_loss[-1]:.5g}"
-            )
+        for name, values in metrics.training.items():
+            message += f", {name}: {values[-1]:.5g}"
 
-        if metrics.validation_accuracy:
-            message += (
-                f", validation accuracy: "
-                f"{metrics.validation_accuracy[-1]:.3g}"
-            )
+        if metrics.validation is not None:
+            for name, values in metrics.validation.items():
+                message += f", validation {name}: {values[-1]:.5g}"
 
         self._progress_logs.append(Text(message))
         live.update(Group(*self._progress_logs), refresh=True)
@@ -209,22 +197,31 @@ class Trainer:
             # Loop until a stopping condition is met
             while True:
                 # Propagate through the network
-                weights_gradients, loss, acc = propagate(
+                weights_gradients, computed_metrics = propagate(
                     nn=self.nn,
                     input_vector=input_vector,
                     target_vector=target_vector,
-                    accuracy=self.accuracy
+                    metrics=self.metrics
                 )
-                if self.accuracy:
-                    self.training_log.metrics.accuracy.append(acc)
+                self.training_log.metrics.record(
+                    computed_metrics=computed_metrics
+                )
+
+                if self.nn.stopping_crit.min_delta_valid_loss is not None:
+                    val_computed_metrics = propagate_valid(
+                        nn=self.nn,
+                        input_vector=valid_input_vector,
+                        target_vector=valid_target_vector,
+                        metrics=self.metrics
+                    )
+                    self.training_log.metrics.record(
+                        computed_metrics=val_computed_metrics,
+                        validation=True
+                    )
 
                 # Evaluate stopping criteria
                 st.check_stopping(
-                    valid_input_vector=valid_input_vector,
-                    valid_target_vector=valid_target_vector,
-                    loss=loss,
-                    weights_gradients=weights_gradients,
-                    accuracy=self.accuracy
+                    weights_gradients=weights_gradients
                 )
 
                 self._progress(live)

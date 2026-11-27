@@ -1,7 +1,7 @@
 """Module containing functions to compute backpropagation deltas."""
 import numpy as np
 from .activation_functions import af_list
-from .loss import compute_error
+from .error import compute_error
 from .classes import ForwardResults
 
 def compute_delta(
